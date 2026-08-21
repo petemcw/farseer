@@ -1,0 +1,25 @@
+{
+  "name": "farseer",
+  "owner": {
+    "name": "Peter McWilliams",
+    "url": "https://github.com/petemcw"
+  },
+  "plugins": [
+    {
+      "name": "farseer",
+      "source": "./",
+      "description": "Autonomous development orchestration with parallel TDD execution and supporting skills",
+      "version": "1.0.0",
+      "homepage": "https://github.com/petemcw/farseer",
+      "license": "MIT",
+      "keywords": [
+        "agents",
+        "autonomous",
+        "development",
+        "orchestration",
+        "planning",
+        "tdd"
+      ]
+    }
+  ]
+}

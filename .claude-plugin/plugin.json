@@ -1,0 +1,36 @@
+{
+  "name": "farseer",
+  "version": "1.0.0",
+  "description": "Autonomous development orchestration with parallel TDD execution and supporting skills",
+  "author": {
+    "name": "Peter McWilliams",
+    "url": "https://github.com/petemcw"
+  },
+  "homepage": "https://github.com/petemcw/farseer",
+  "repository": "https://github.com/petemcw/farseer",
+  "license": "MIT",
+  "keywords": [
+    "agents",
+    "autonomous",
+    "development",
+    "orchestration",
+    "planning",
+    "tdd"
+  ],
+  "skills": [
+    "./skills/architecture-decision-records",
+    "./skills/but-how",
+    "./skills/but-why",
+    "./skills/deslop",
+    "./skills/domain-modeling",
+    "./skills/farseer",
+    "./skills/git-guardrails",
+    "./skills/interviewer",
+    "./skills/orchestrate",
+    "./skills/planner",
+    "./skills/repo-setup",
+    "./skills/teach",
+    "./skills/triage",
+    "./skills/understand"
+  ]
+}

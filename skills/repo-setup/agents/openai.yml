@@ -1,0 +1,5 @@
+interface:
+  display_name: "Setup Farseer"
+  short_description: "Configure a repository for Farseer"
+policy:
+  allow_implicit_invocation: false

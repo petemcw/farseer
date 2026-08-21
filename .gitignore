@@ -1,0 +1,25 @@
+.claude/*
+!.claude/CLAUDE.md
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows
+Thumbs.db
+Desktop.ini
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Conflict and in-place-edit leftovers
+*.orig
+*.rej
+*.bak
+*.tmp

@@ -1,0 +1,5 @@
+interface:
+  display_name: "Orchestrate"
+  short_description: "Execute implementation plans with parallel TDD workers"
+policy:
+  allow_implicit_invocation: true

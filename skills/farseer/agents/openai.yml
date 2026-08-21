@@ -1,0 +1,5 @@
+interface:
+  display_name: "Farseer"
+  short_description: "Plan a chunk of work too big for one agent session"
+policy:
+  allow_implicit_invocation: false

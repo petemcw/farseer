@@ -1,0 +1,5 @@
+interface:
+  display_name: "Architecture Decision Records"
+  short_description: "Manage and document architecture decisions"
+policy:
+  allow_implicit_invocation: true
