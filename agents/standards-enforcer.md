@@ -1,7 +1,7 @@
 ---
 name: standards-enforcer
 description: "Code standards enforcement worker. Reviews and fixes a batch of files to match project coding standards without changing behavior."
-model: opus
+model: sonnet
 tools: Read, Edit, Glob, Grep, Bash
 # To enable code-standards enforcement after implementation, uncomment:
 # phase: post-implementation
