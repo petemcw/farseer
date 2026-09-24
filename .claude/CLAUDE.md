@@ -15,7 +15,7 @@ The plugin's own workflow is for *consumer* projects.
 
 ```bash
 # Lint shell
-shellcheck hooks/*.sh tests/*.sh
+shellcheck hooks/*.sh
 ```
 
 ## Key Conventions
@@ -37,8 +37,9 @@ To cut a new release:
 
 1. Bump `version` in **both** `.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json` (must match, or `claude plugin tag` refuses).
 2. Commit the version bump.
-3. Run `claude plugin tag --push` — auto-generates a tag in the form `farseer--v{version}` (note the **double dash** between plugin name and `v`) and pushes it. `--dry-run` previews without creating anything.
-4. Mirror to GitHub Releases: `gh release create farseer--v{version} --title "farseer--v{version}" --latest`. **Always pass `--latest`** — without it GitHub picks the "Latest" badge by creation timestamp, which is wrong given this repo's tags are already out of chronological order.
-5. Users update via `/plugin marketplace update farseer`, then `/plugin install farseer@farseer`, then `/reload-plugins`. The reload step is non-obvious and required.
+3. Push the branch: `git push origin master`. The marketplace serves from `master`, and step 4 pushes only the tag, so skipping this leaves users on the old version.
+4. Run `claude plugin tag --push` — auto-generates a tag in the form `farseer--v{version}` (note the **double dash** between plugin name and `v`) and pushes it. `--dry-run` previews without creating anything.
+5. Mirror to GitHub Releases: `gh release create farseer--v{version} --title "farseer--v{version}" --latest`. **Always pass `--latest`** — without it GitHub picks the "Latest" badge by creation timestamp, which is wrong whenever a release is created out of version order (e.g. a backported fix).
+6. Users update via `/plugin marketplace update farseer`, then `/plugin install farseer@farseer`, then `/reload-plugins`. The reload step is non-obvious and required.
 
 **Versioning:** semver, read as `BREAKING.FEATURE.FIX`. New phases / agents / skills = minor. Removing a generated file is treated as minor since existing user data isn't destroyed.
