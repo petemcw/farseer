@@ -9,7 +9,7 @@
       "name": "farseer",
       "source": "./",
       "description": "Autonomous development orchestration with parallel TDD execution and supporting skills",
-      "version": "1.1.0",
+      "version": "2.0.0",
       "homepage": "https://github.com/petemcw/farseer",
       "license": "MIT",
       "keywords": [
