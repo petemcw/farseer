@@ -1,0 +1,5 @@
+interface:
+  display_name: "Illustrations"
+  short_description: "Absurd, clean, hand-drawn Xiaohei-style in-article illustrations"
+policy:
+  allow_implicit_invocation: true
