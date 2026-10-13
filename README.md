@@ -338,7 +338,7 @@ All skills can be invoked directly with `/farseer:skill-name` or triggered autom
 | `architecture-decision-records` | `/farseer:architecture-decision-records`  | Yes - "Create ADR", "Record architecture decision", "Log decision"                                    | Capture architectural decisions made during coding sessions             |
 | `but-how`                       | `/farseer:but-how`                        | No                                                                                                    | Use for 'how does X work'                                               |
 | `but-why`                       | `/farseer:but-why`                        | No                                                                                                    | Use for 'why does X work this way'                                      |
-| `deslop`                        | `/farseer:deslop`                         | Yes                                                                                                   | Cut out AI tells from any writing                                       |
+| `humanize`                        | `/farseer:humanize`                         | Yes                                                                                                   | Cut out AI tells from any writing                                       |
 | `domain-modeling`               | `/farseer:domain-modeling`                | Yes                                                                                                   | Build and sharpen a project's domain model                              |
 | `farseer`                       | `/farseer:farseer`                        | No                                                                                                    | Plan a chunk of work too big for one agent session                      |
 | `git-guardrails`                | `/farseer:git-guardrails`                 | Yes                                                                                                   | Set up Claude Code hooks to block dangerous Git commands                |
@@ -379,10 +379,10 @@ farseer/
 │   ├── architecture-decision-records/
 │   ├── but-how/
 │   ├── but-why/
-│   ├── deslop/
 │   ├── domain-modeling/
 │   ├── farseer/
 │   ├── git-guardrails/
+│   ├── humanize/
 │   ├── interviewer/
 │   ├── orchestrate/
 │   ├── planner/

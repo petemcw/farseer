@@ -23,7 +23,7 @@ One file per **concept**, not per issue. Multiple issues requesting the same thi
 
 The file should be written in a relaxed, readable style, more like a short design document than a database entry. Use paragraphs, code samples, and examples to make the reasoning clear and useful to someone encountering it for the first time.
 
-Entries should trigger the Skill using `/farseer:deslop` to give a more human voice to the text.
+Entries should trigger the Skill using `/farseer:humanize` to give a more human voice to the text.
 
 ```markdown
 # Dark Mode

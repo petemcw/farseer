@@ -8,7 +8,7 @@ argument-hint: "[feature description]"
 
 Transform feature requests into structured plans with task breakdowns, dependencies, and TDD requirements for parallel autonomous execution.
 
-**All multi-sentence output for user presentation** should trigger the Skill using `/farseer:deslop` to give a more human voice to the text.
+**All multi-sentence output for user presentation** should trigger the Skill using `/farseer:humanize` to give a more human voice to the text.
 
 ## Domain Context
 

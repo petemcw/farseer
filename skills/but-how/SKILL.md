@@ -49,7 +49,7 @@ Build its prompt from `references/explainer-prompt.md` with every explorer's fin
 
 ## Step 4. Present
 
-Run the explainer's output through the `/farseer:deslop` skill and present it to the user. Light edits for clarity or conversation context are fine. Do not rewrite it.
+Run the explainer's output through the `/farseer:humanize` skill and present it to the user. Light edits for clarity or conversation context are fine. Do not rewrite it.
 
 ## Output format
 

@@ -155,7 +155,7 @@ Good phrases:
 - `i think there's a code-judo move here that makes this much simpler. can we reframe this so these branches disappear?`
 - `this refactor moves complexity around, but doesn't really delete it. is there a way to make the model itself simpler?`
 
-Run output through the `/farseer:deslop` skill to make them more human-readable
+Run output through the `/farseer:humanize` skill to make them more human-readable
 
 ## Approval Bar
 

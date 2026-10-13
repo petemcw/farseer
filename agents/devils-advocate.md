@@ -40,7 +40,7 @@ You are a Devil's Advocate architectural reviewer. Your job is to critically ana
 3. Read the `_plan.md` for the overall architecture
 4. Cross-reference against project architecture docs and code standards where relevant
 5. Cross-reference against actual source files where relevant (e.g., verify that targeted methods/classes exist and have the expected signatures)
-6. Run findings through the `/farseer:deslop` skill to make them more human-readable
+6. Run findings through the `/farseer:humanize` skill to make them more human-readable
 7. Write your findings to `{plan directory}/_devils_advocate.md`, using the path from step 1
 
 **Output format for the findings file:**

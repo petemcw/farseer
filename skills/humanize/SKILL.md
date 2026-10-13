@@ -1,9 +1,9 @@
 ---
-name: deslop
+name: humanize
 description: Cut out AI tells from any writing. Must always apply to agent outputs.
 ---
 
-# Deslop
+# Humanize
 
 Edit text to remove AI patterns and add human voice.
 

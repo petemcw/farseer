@@ -23,7 +23,7 @@ Treat the current directory as a teaching workspace. The state of their learning
 
 ## User Output
 
-**All multi-sentence output for user presentation** should trigger the Skill using `/farseer:deslop` to give a more human voice to the text.
+**All multi-sentence output for user presentation** should trigger the Skill using `/farseer:humanize` to give a more human voice to the text.
 
 ## Philosophy
 

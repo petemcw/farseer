@@ -22,7 +22,7 @@ Create or modify `AGENTS.md` or `CLAUDE.md`. Create all Farseer configuration fi
 
 **Every question this skill puts to the user goes through the `AskUserQuestion` tool**. When presenting options, provide genuine alternatives, the recommended one should always be first and labeled "(Recommended)". An open-ended question still must go through the tool, whose built-in free-text path carries the user's own words. If a question is worth stopping for, it is worth making answerable in one click. A prose paragraph the user must answer by essay is the failure this rule ends.
 
-**All multi-sentence output for user presentation** should trigger the Skill using `/farseer:deslop` to give a more human voice to the text.
+**All multi-sentence output for user presentation** should trigger the Skill using `/farseer:humanize` to give a more human voice to the text.
 
 ## Execution Steps
 
