@@ -26,6 +26,12 @@ PLANS_DIR="$("{skill-base-dir}/../../hooks/resolve-plans-dir.sh")" || exit 1
 
 **Never substitute a hand-written `jq` line or a literal `.farseer/plans`.** A non-zero exit means the project root or the configured value is unusable; surface the script's stderr verbatim and stop. Quote every path built from `$PLANS_DIR` — a configured directory may contain spaces.
 
+**Resolve the project root** the same way, once, for the [Project Rules](#project-rules) paths:
+
+```bash
+PROJECT_DIR="$("{skill-base-dir}/../../hooks/resolve-project-dir.sh")" || exit 1
+```
+
 Then:
 
 1. Plan must exist at `$PLANS_DIR/{plan-name}/`
@@ -60,9 +66,19 @@ If the current branch is not `feature/{plan-name}`:
 @.farseer/testing.md
 </testing>
 
-<code-standards>
-@.farseer/code-standards.md
-</code-standards>
+The orchestrator loads `<testing>` because it runs the full suite itself (Step 4a). It does not load the code standards. Subagents read the rules files on their own from the [Project Rules](#project-rules) list.
+
+### Project Rules
+
+Build the rules file list once, before the first spawn. Each entry is an absolute path under `$PROJECT_DIR`, included **only if the file exists**:
+
+```bash
+for f in testing.md code-standards.md; do
+  if [ -f "$PROJECT_DIR/.farseer/$f" ]; then printf '%s\n' "$PROJECT_DIR/.farseer/$f"; fi
+done
+```
+
+Every subagent prompt carries this list under a `## Project Rules` heading, and the subagent reads each file itself. **Never paste or summarize the files' contents into a prompt.** A pasted copy is where paraphrase drift creeps in, and the subagent can read the original. Pass the concrete paths, not `$PROJECT_DIR`. As with `## Task File Path`, one resolver runs in this skill and every subagent gets a finished path.
 
 ## Execution Algorithm
 
@@ -90,7 +106,7 @@ Read plan files:
 - `$PLANS_DIR/{plan-name}/_plan.md` - Plan overview
 - `$PLANS_DIR/{plan-name}/*.md` - All task files (excluding \_plan.md)
 
-Note: Testing and code standards are auto-included above.
+Note: Testing is auto-included above. Build the [Project Rules](#project-rules) list now.
 
 Parse each task file to extract:
 
@@ -142,8 +158,6 @@ A task is **ready** when:
 ready_tasks = []
 for each task in tasks (in task-number order):
     if task.status == "pending" and task not in running:
-        if all(dep.status == "completed" for dep in task.dependencies):
-            ready_tasks.append(task)
         if all(dep.status == "completed" for dep in task.dependencies):
             ready_tasks.append(task)
 ```
@@ -204,30 +218,23 @@ On a normal (exit 0, non-empty) result, spawn each agent per its **`mode` field*
 
 ### Spawning hook agents
 
-Hook agents are spawned with the Task tool using `subagent_type="{agent-name}"`. The orchestrator only has `<testing>` and `<code-standards>` in context (see [Project Configuration](#project-configuration)). It does NOT have `<architecture>`. Pass each hook agent the project context it needs verbatim:
-
-> **CRITICAL: Pass the COMPLETE, VERBATIM content of the `<code-standards>` and
-> `<testing>` tags above. Do NOT summarize, condense, or paraphrase. The full
-> documents contain nuanced rules that are lost when summarized. Copy-paste the
-> entire content between the tags.**
+Hook agents are spawned with the Task tool using `subagent_type="{agent-name}"`. Give each hook agent the [Project Rules](#project-rules) list. The agent reads the files itself, so do not paste their contents.
 
 For a **`batch`** agent, send one prompt per batch:
 
 ```markdown
-## Code Standards
+## Project Rules
 
-{paste the COMPLETE content of <code-standards> verbatim — do NOT summarize}
+Read every file below in full before reviewing:
 
-## Testing Standards
-
-{paste the COMPLETE content of <testing> verbatim — do NOT summarize}
+{the Project Rules list, one absolute path per line}
 
 ## Files to Review
 
 {list of files in this batch, one per line}
 ```
 
-For a **`single`** agent, send one prompt covering the whole plan, including the plan name, the changed-files list, and `<testing>` + `<code-standards>` verbatim.
+For a **`single`** agent, send one prompt covering the whole plan, including the plan name, the changed-files list, and the `## Project Rules` list.
 
 > If a hook agent needs project architecture, that is out of scope for this
 > orchestrator — it does not load `<architecture>`. Do NOT fabricate an
@@ -257,6 +264,8 @@ Then spawn the resolved agents per their `mode` (see [Spawning hook agents](#spa
 **Any non-zero exit stops the run** — see [Hook Discovery](#hook-discovery).
 
 **2. After ALL post-implementation agents complete, run validation:**
+
+Run the full test suite once per batch. Individual workers should run code or module scoped tests only.
 
 ```bash
 # Run full test suite
@@ -371,28 +380,23 @@ Batch {B} launched: tasks {list} (running {len(running)})
 
 **Worker Prompt (pass to each tdd-worker):**
 
-> **CRITICAL: Pass the COMPLETE, VERBATIM content of the `<testing>` and `<code-standards>` tags above.
-> Do NOT summarize. Subagents have no access to CLAUDE.md or project files beyond what you provide.**
-
 ```markdown
 ## Task File Path
 
 {the concrete resolved path, e.g. $PLANS_DIR/{plan-name}/{task-file}.md}
 
-## Project Testing Configuration
+## Project Rules
 
-{paste the COMPLETE content of <testing> verbatim — do NOT summarize}
+Read every file below in full before writing any code:
 
-## Code Standards
-
-{paste the COMPLETE content of <code-standards> verbatim — do NOT summarize}
+{the Project Rules list, one absolute path per line}
 
 ## Your Task
 
 {contents of the task file}
 ```
 
-The `tdd-worker` agent already has all TDD methodology and rules. The prompt needs the project-specific configuration and task details since subagents do not inherit `CLAUDE.md` context.
+The `tdd-worker` agent already has all TDD methodology and rules. The prompt points it at the project's rules files and gives it the task details. Do not paste the rules files' contents.
 
 Pass the **concrete** path under `## Task File Path`, not the literal `$PLANS_DIR` — the worker marks checkboxes and appends implementation notes there, and it must never read `.farseer/config.json` or assume a default to find it. One resolver runs in this skill; every subagent is handed a finished path.
 

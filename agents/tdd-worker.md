@@ -44,7 +44,7 @@ RIGHT (vertical):
 
 ## TDD Process (STRICT)
 
-Use the test commands from the project testing configuration provided in your prompt. Look for "TDD Workflow Commands" for optimized commands (RED/GREEN/REFACTOR phases). If not present, use the standard test command.
+Use the test commands from the testing file listed under [Project Rules](#project-rules). Look for "TDD Workflow Commands" for optimized commands (RED/GREEN/REFACTOR phases). If not present, use the standard test command. TDD worker agents should **ALWAYS** run module or working code scoped tests only. The orchestrator runs the full suite per batch.
 
 For EACH unchecked requirement in order:
 
@@ -91,6 +91,12 @@ If no `## Task File Path` heading is present (direct or manual invocation), loca
 
 **Never read `.farseer/config.json`.** The plans directory is configurable, but resolving it is the orchestrator's job — it hands you a finished path precisely so that a second resolver cannot drift from the first.
 
+## Project Rules
+
+Before the first RED, read every file listed under the `## Project Rules` heading of your prompt, in full. They hold the project's testing configuration and code standards, and they are binding. If a listed file cannot be read, output `TASK_FAILED: cannot read {path}`. Do not guess at the rules.
+
+If no `## Project Rules` heading is present (direct or manual invocation), read `.farseer/testing.md` and `.farseer/code-standards.md` from the project root, skipping any that do not exist.
+
 ## Critical TDD Rules
 
 **Edge cases you MUST test:**
@@ -127,7 +133,7 @@ If no `## Task File Path` heading is present (direct or manual invocation), loca
 
 **General:**
 
-- Follow the code standards provided in your prompt strictly
+- Follow the code standards file listed under [Project Rules](#project-rules) strictly
 - Use existing patterns from the codebase
 - Write code for production - tests adapt to code, not the other way around
 
@@ -151,7 +157,7 @@ Requirement 2: `{test name}`
 
 After ALL requirements are [x]:
 
-1. Run full test suite using the parallel test command
+1. Run scoped tests using the parallel test command
 2. Verify all tests pass
 3. Output exactly: `TASK_COMPLETE`
 
