@@ -1,6 +1,6 @@
 {
   "name": "farseer",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Autonomous development orchestration with parallel TDD execution and supporting skills",
   "author": {
     "name": "Peter McWilliams",
