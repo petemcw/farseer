@@ -60,7 +60,7 @@ mode: single       # "single" | "batch"; default "single"
 
 | Key     | Type    | Default    | Meaning                                                                                  |
 |---------|---------|------------|------------------------------------------------------------------------------------------|
-| `phase` | string  | (none)     | The hook point that enrolls this agent. Must be one of the 8 hooks above.                |
+| `phase` | string  | (none)     | The hook point that enrolls this agent. Must be one of the 8 hooks above, or `none` in a [local override](#local-agents-and-overrides). |
 | `order` | integer | `100`      | Run order within a hook. Lower runs first. Equal values tie-break by `name`.             |
 | `mode`  | enum    | `single`   | How the agent is spawned: `single` (one sub-agent for the whole plan) or `batch` (files are split into batches of ~10 and spawned as parallel sub-agents). |
 
@@ -68,12 +68,40 @@ mode: single       # "single" | "batch"; default "single"
 
 **If an agent declares a `phase`, it runs.** There is no conditional
 evaluation. Farseer intentionally has **no** `requires:` or `condition:` mechanism —
-a declared `phase` is an unconditional enrollment. To stop an agent from
-running at a hook, remove its `phase` key (or delete/override the agent); do not
-look for a condition to toggle.
+a declared `phase` is an unconditional enrollment. To stop one of your own
+agents from running at a hook, remove its `phase` key. To stop a plugin agent,
+override it with `phase: none` (see below). Do not look for a condition to
+toggle.
 
 An agent with **no** `phase` key is simply not enrolled in any hook (e.g.
 `tdd-worker`, which the orchestrator spawns directly, never via a hook).
+
+### Local agents and overrides
+
+Project agents live in `<project root>/.claude/agents/`, Claude Code's own
+project-agent directory, so Claude Code registers each one as a real subagent
+and enforces its `tools` and `model`. A file there joins the pipeline only when
+it declares a `phase`; the directory also holds your other agents, and those
+are left alone.
+
+- **Add a gate:** give a new agent a `phase`.
+- **Replace a plugin agent:** use the same frontmatter `name` and declare a
+  `phase`. The local file wins entirely, enrollment and instructions alike.
+- **Switch off a plugin agent:** use the same `name` and `phase: none`. A
+  same-named file with *no* `phase` does **not** switch it off, so an unrelated
+  agent of yours that happens to share a name (`code-reviewer` is common)
+  cannot disable Farseer's. `phase: none` with a name no plugin agent has warns
+  and is ignored.
+- **Enable a dormant plugin agent** such as `standards-enforcer`: copy it into
+  `.claude/agents/` and set its `phase` there. Do not edit the plugin's copy;
+  a plugin update overwrites it.
+
+Overrides apply to hook agents only. `tdd-worker` is spawned directly by
+`orchestrate`, so a local `tdd-worker.md` is never used.
+
+Claude Code loads agent files when a session starts. After adding or renaming a
+file in `.claude/agents/`, restart the session (or create it through `/agents`)
+before running a plan, or the spawn will not find it.
 
 ## Discovery Routine
 
@@ -114,8 +142,22 @@ what made the original bug invisible for so long.
 and stop. There is no prose fallback — falling back to hand-enumeration would
 reintroduce improvised bash at exactly the moment the script is unavailable.
 
+### Spawning
+
+Each row names the agent's `origin`, which decides how it is spawned with the
+Agent tool:
+
+| `origin` | `subagent_type`    | Why                                                     |
+|----------|--------------------|---------------------------------------------------------|
+| `plugin` | `farseer:{name}`   | Plugin agents register under the `farseer:` namespace   |
+| `local`  | `{name}`           | Project agents in `.claude/agents/` register bare       |
+
+Never spawn by the bare name alone: if the project has its own agent with a
+plugin agent's name, a bare spawn runs the project's agent while discovery
+reported the plugin's.
+
 Spawn modes: `single` → one sub-agent for the whole plan. `batch` → split the
-relevant file list into batches of ~10 and spawn parallel sub-agents (one Task
+relevant file list into batches of ~10 and spawn parallel sub-agents (one Agent
 call per batch, all in a single message). The mode comes from the agent's
 `mode` field, never from reading its body.
 
@@ -126,7 +168,7 @@ behavior is reviewable — not as steps for anyone to perform by hand.
 
 1. **Enumerate plugin agents.** Top-level `*.md` in the plugin's `agents/`
    directory, which the script resolves from its own location
-   (`$(dirname "$0")/../agents`). Not recursive.
+   (`$(dirname "${BASH_SOURCE[0]}")/../agents`). Not recursive.
 2. **Resolve the project root,** in order: `CLAUDE_PROJECT_DIR` when set (and a
    directory — set but pointing nowhere is an error, not a fallback); else the
    nearest ancestor of the working directory holding a `.farseer/`; else the
@@ -139,7 +181,7 @@ behavior is reviewable — not as steps for anyone to perform by hand.
    directory — guessing produces a well-formed enrollment that silently omits
    every local agent, and a fingerprint captured that way stays wrong until it
    surfaces as a drift halt naming a change that never happened.
-3. **Enumerate local agents.** Top-level `*.md` in `<project root>/.farseer/agents`.
+3. **Enumerate local agents.** Top-level `*.md` in `<project root>/.claude/agents`.
    A missing directory is normal, not an error — most projects have none. A
    missing *project* is not: see the step above.
 4. **Parse frontmatter.** `name`, `phase`, `order`, `mode` from the **first**
@@ -149,18 +191,23 @@ behavior is reviewable — not as steps for anyone to perform by hand.
    values, so the [example above](#frontmatter-schema) parses as written; CRLF
    files are handled. A file with no `phase` is simply not enrolled.
 5. **Merge with local override,** keyed on the frontmatter `name` — *not* the
-   filename. A local file **overrides** a plugin agent of the same `name`
-   entirely; there is no field-level merge. Duplicate names within one directory
-   warn and resolve last-wins.
-6. **Validate — fatally.** A `phase` outside the 8 hooks, or a `mode` other than
+   filename. A local file that declares a `phase` **overrides** a plugin agent
+   of the same `name` entirely; there is no field-level merge. `phase: none`
+   overrides it with no enrollment, so the agent leaves every hook; the
+   unfiltered view lists it under `# disabled`. A local file with no `phase`
+   overrides nothing. Duplicate names within one directory warn and resolve
+   last-wins.
+6. **Validate — fatally.** A `phase` outside the 8 hooks (other than `none`), or a `mode` other than
    `single`/`batch`, **aborts with exit 3**, naming every offending file and the
    fix. Validation is **global**: a bad value in a `post-commit` agent aborts a
    `pre-plan` query, so the problem surfaces at the earliest moment rather than
    hours later. A non-numeric `order` is milder — it warns and falls back to
-   `100`.
+   `100`. Leading zeros are read as base 10, so `order: 007` is `7`.
 7. **Filter** to `HOOK` when `--hook` is given.
 8. **Sort** by `order` ascending (missing = `100`), then `name`
    case-insensitively. See [Sort and tie-break](#sort-and-tie-break).
+9. **Print** one row per agent with its `order`, `name`, `mode` and `origin`
+   (`plugin` or `local`). `--json` carries the same four fields.
 
 Other flags: `--json` for machine-readable output, `--fingerprint` /
 `--expect=` for [drift detection](#drift-detection), `--help` for usage. Run it
@@ -199,19 +246,15 @@ mechanism unusable. Drift detection answers "did the pipeline change?", not
 legitimately change enrollment mid-run and halt itself. That is correct, but
 surprising — the escape hatch is to delete `.hook-fingerprint` and re-run to
 re-baseline, which the exit-4 message says. Nothing else Farseer does mid-run
-touches `agents/` or `.farseer/agents/`.
+touches `agents/` or `.claude/agents/`.
 
 ### Resolving the plugin `agents/` directory
 
 The script self-locates: its `agents/` directory is always
-`$(dirname "$0")/../agents`, so it must stay in the plugin's `hooks/` directory
+`$(dirname "${BASH_SOURCE[0]}")/../agents`, so it must stay in the plugin's `hooks/` directory
 alongside `agents/`. If that directory cannot be found the script **exits 1**
 rather than proceeding with local agents only — silently dropping the plugin's
 own bundled agents is precisely the failure mode being fixed.
-
-(`project-update` separately resolves the plugin directory as "two levels up
-from this skill file" for its legacy-migration path. That convention still
-applies there and is unrelated to discovery.)
 
 ### Empty-hook fast path
 

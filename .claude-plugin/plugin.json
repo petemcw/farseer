@@ -16,21 +16,5 @@
     "orchestration",
     "planning",
     "tdd"
-  ],
-  "skills": [
-    "./skills/architecture-decision-records",
-    "./skills/but-how",
-    "./skills/but-why",
-    "./skills/domain-modeling",
-    "./skills/farseer",
-    "./skills/git-guardrails",
-    "./skills/humanize",
-    "./skills/interviewer",
-    "./skills/orchestrate",
-    "./skills/planner",
-    "./skills/repo-setup",
-    "./skills/teach",
-    "./skills/triage",
-    "./skills/understand"
   ]
 }

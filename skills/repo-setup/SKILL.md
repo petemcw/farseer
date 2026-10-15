@@ -52,7 +52,9 @@ ls .farseer/scratch/ 2>/dev/null
 
 If `AGENTS.md` or `CLAUDE.md` and all config files (`architecture.md`, `code-standards.md`, `domain.md`, `issue-labels.md`, `issue-tracker.md`, `testing.md`) exist, inform the user:
 
-> Repository already configured. Config files exist in `.farseer/`. To reconfigure, delete `.farseer/` then run `/farseer:repo-setup` again.
+> Repository already configured. Config files exist in `.farseer/`.
+
+Then ask which config files, if any, the user wants regenerated, and continue setup for only those. Never tell the user to delete `.farseer/`: it also holds plans, ADRs, and the out-of-scope records.
 
 Otherwise, continue with setup.
 
@@ -172,7 +174,7 @@ If it is installed, ask exactly one question:
 
 > Do you want to keep the default issue labels? (recommended: **yes**)
 
-The defaults are the five canonical roles, each label string equal to its name: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `nofix`. On **yes**, write them as-is. Only if the user says no, usually because their tracker already uses other names (e.g. `bug:triage` for `needs-triage`), collect the overrides so `/farseer:triage` applies existing labels instead of creating duplicates.
+The defaults are the five canonical roles, each label string equal to its name: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. On **yes**, write them as-is. Only if the user says no, usually because their tracker already uses other names (e.g. `bug:triage` for `needs-triage`), collect the overrides so `/farseer:triage` applies existing labels instead of creating duplicates.
 
 ### Step 5: Open-Ended Project Dump
 
@@ -212,38 +214,13 @@ mkdir -p .farseer
 ````markdown
 # Testing Configuration
 
-TDD is the red → green loop. This is the reference that makes that loop produce tests worth keeping: what a good test is, where tests go, the anti-patterns, and the rules of the loop. Every section applies on every cycle: consult them before and during the loop, not after.
+This project's test facts: framework, commands, locations, coverage and naming. TDD methodology lives in Farseer's `tdd-worker` agent, so it is not repeated here.
 
 When exploring the codebase, read `.farseer/domain.md` (if it exists) so test names and interface vocabulary match the project's domain language, and respect ADRs in the area you're touching.
 
 ## Test Framework
 
 {detected framework}
-
-## TDD Methodology
-
-Each issue follows strict Red → Green → Refactor:
-
-1. Write ONE failing test for ONE requirement.
-2. Write the MINIMUM but SUFFICIENT code to pass the current test.
-3. Refactor the code while tests stay green.
-4. Update the requirement as complete.
-5. Repeat for the next requirement.
-6. Commit when the issue is complete.
-
-### Good Tests
-
-**Good tests** are integration-style: they exercise real code paths through public APIs. They describe what the system does, not how it does it. A good test reads like a specification - "user can checkout with valid cart" tells you exactly what capability exists and it survives refactors because it doesn't care about internal structure.
-
-### Bad Tests
-
-**Bad tests** are coupled to implementation. They mock internal collaborators, test private methods, or verify through external means (like querying a database directly instead of using the interface). The warning sign: your test breaks when you refactor, but behavior hasn't changed. If you rename an internal function and tests fail, those tests were testing implementation, not behavior.
-
-### Anti-Patterns
-
-- **Implementation-coupled**: mocks internal collaborators, tests private methods, or verifies through a side channel (querying the database instead of using the interface). The tell: the test breaks when you refactor but behavior hasn't changed.
-- **Tautological**: the assertion recomputes the expected value the way the code does (`expect(add(a, b)).toBe(a + b)`, a snapshot derived by hand the same way, a constant asserted equal to itself), so it passes by construction and can never disagree with the code. Expected values must come from an independent source of truth: a known-good literal, a worked example, the spec.
-- **Horizontal slicing**: writing all tests first, then all implementation. Bulk tests verify _imagined_ behavior: you test the _shape_ of things rather than user-facing behavior, the tests go insensitive to real changes, and you commit to test structure before understanding the implementation. Work in **vertical slices** instead: one test → one implementation → repeat, each test a **tracer bullet** that responds to what the last cycle taught you.
 
 ## Commands
 
@@ -254,7 +231,7 @@ Each issue follows strict Red → Green → Refactor:
 # Run all tests (sequential, for debugging failures)
 {test command}
 
-# Run specific test file
+# Run specific test file or filter (scoped run, used by TDD workers)
 {test command} {path placeholder}
 
 # Run with coverage
@@ -381,13 +358,15 @@ If the user selected "other" issue trackers, write `.farseer/issue-tracker.md` f
 
 **Pipeline enrollment (nothing to scaffold):**
 
-Pipeline agents enroll via their own frontmatter (`phase:`), so a fresh setup already has a working pipeline from the plugin's bundled agents — nothing to scaffold here. `devils-advocate` runs at `post-plan`; `standards-enforcer` ships dormant (uncomment its `phase` to enable). See `HOOKS.md`. Running `hooks/discover-hooks.sh` prints exactly what is enrolled at each hook.
+Pipeline agents enroll via their own frontmatter (`phase:`), so a fresh setup already has a working pipeline from the plugin's bundled agents — nothing to scaffold here. `devils-advocate` runs at `post-plan`, `issue-creator` at `pre-implementation`, and `code-reviewer` at `post-implementation`; `standards-enforcer` ships dormant. Project agents and overrides live in `.claude/agents/`. See `HOOKS.md`. Running `hooks/discover-hooks.sh` prints exactly what is enrolled at each hook.
 
 Tell the user:
 
-> **Pipeline ready.** `devils-advocate` is enrolled at the `post-plan` hook via its own agent frontmatter, so it runs automatically when you create a plan. `standards-enforcer` ships with Farseer but is dormant — uncomment its `phase` key in the agent's frontmatter to enable code-standards enforcement on changed files.
-> To add your own gate, drop an agent file in `.farseer/agents/` and give it a `phase` (one of the 8 hook points). A local agent with the same `name` overrides the plugin's. See `HOOKS.md` for the full hook list and frontmatter schema.
-> To see what is currently enrolled at each hook, run `$(claude plugin path farseer)/hooks/discover-hooks.sh` — that is the fastest answer whenever an agent doesn't fire.
+> **Pipeline ready.** Three bundled agents enroll themselves through their own frontmatter: `devils-advocate` reviews each plan (`post-plan`), `issue-creator` pushes tasks to your tracker before implementation (`pre-implementation`), and `code-reviewer` reviews the finished change (`post-implementation`). `standards-enforcer` ships dormant; to enable it, copy it into `.claude/agents/` and set its `phase` there.
+> To add your own gate, drop an agent file in `.claude/agents/` and give it a `phase` (one of the 8 hook points). A file with the same `name` as a plugin agent replaces it, and `phase: none` switches it off. Restart the session after adding an agent file so Claude Code picks it up. See `HOOKS.md` for the full hook list and frontmatter schema.
+> To see what is currently enrolled at each hook, run `"{skill-base-dir}/../../hooks/discover-hooks.sh"` — that is the fastest answer whenever an agent doesn't fire.
+
+Write `{skill-base-dir}` in that message as the literal `Base directory for this skill` path, so the user can paste the command as-is.
 
 **Create AI configuration in project root:**
 
@@ -514,7 +493,7 @@ Project configured for autonomous development!
 
 Next steps:
 1. Review the generated files in `.farseer/`
-2. Customize the pipeline by enrolling agents via frontmatter — set a `phase` on an agent in `.farseer/agents/` to add a gate, or remove a `phase` to drop one (see HOOKS.md)
+2. Customize the pipeline by enrolling agents via frontmatter — give an agent in `.claude/agents/` a `phase` to add a gate, or override a plugin agent with `phase: none` to drop one (see HOOKS.md)
 3. Describe a feature to start planning: "Help me implement..."
 4. The `/farseer:planner` skill will auto-trigger to help you plan
 ```

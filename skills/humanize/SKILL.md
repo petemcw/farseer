@@ -14,6 +14,8 @@ Edit text to remove AI patterns and add human voice.
 3. Add soul (see next section).
 4. Self-audit: "What makes this obviously AI generated?" Fix remaining tells.
 
+**Edit prose only.** When another skill or template sets the shape of the output, keep that shape: its headings and their casing, bold field labels like `**Category:**`, tables, code blocks, and required section order. Keep deliberate hedges and confidence language too. A calibrated "likely" or "unverified" is a finding, not filler, so rules 21, 24 and "Have opinions" do not apply to it.
+
 ## Adding Soul
 
 Removing patterns is half the job. Sterile, voiceless writing is just as obvious.

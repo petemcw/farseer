@@ -1,6 +1,6 @@
 ---
 name: planner
-description: Create structured implementation plans for autonomous TDD development. Use for new features, multi-file changes, or anything requiring multiple steps or tests. Triggers on aspirational openers ("let's build", "let's start building", "I want to make", "I want an app that", "help me build"), capability lists ("users should be able to X, Y, Z"), vague-noun patterns ("a system for", "a way to", "an app that", "functionality for"), and explicit build verbs ("build", "create", "add a feature", "help me implement", "I need to build"). Do NOT use this for "implement the plan" or "run the plan" - those should use `/farseer:orchestrate` instead. Skip for quick bug fixes, single-line changes, questions, or documentation.
+description: Create structured implementation plans for autonomous TDD development. Use for new features or multi-step, multi-file changes, including asks like "let's build", "help me build", "I want an app that", "a system for", or "users should be able to X, Y, Z". Not for running an existing plan (use `/farseer:orchestrate`), quick bug fixes, single-line changes, questions, or documentation.
 argument-hint: "[feature description]"
 ---
 
@@ -22,11 +22,33 @@ Transform feature requests into structured plans with task breakdowns, dependenc
 @.farseer/architecture.md
 </architecture>
 
-## Issue Tracker
+## Project Context
 
-<issue-tracker>
-@.farseer/issue-tracker.md
-</issue-tracker>
+Agents spawned by this skill read the project's context files themselves. Before the first spawn, resolve the project root once:
+
+```bash
+"{skill-base-dir}/../../hooks/resolve-project-dir.sh"
+```
+
+Build the list from the printed path (call it `$PROJECT_DIR`, and write it literally into later commands). Include each file **only if it exists**:
+
+```bash
+for f in domain.md architecture.md code-standards.md; do
+  if [ -f "$PROJECT_DIR/.farseer/$f" ]; then printf '%s\n' "$PROJECT_DIR/.farseer/$f"; fi
+done
+```
+
+Pass it to every agent as:
+
+```markdown
+## Project Context
+
+Read the files below that bear on your job:
+
+{the list, one absolute path per line}
+```
+
+**Never paste or summarize these files' contents into a prompt.** The agent reads the originals.
 
 ## Execution Flow
 
@@ -45,35 +67,13 @@ Run the discovery script — never enumerate agent files by hand:
 `{skill-base-dir}` is the **`Base directory for this skill`** value stated when this skill loaded. `${CLAUDE_PLUGIN_ROOT}` is not available in a skill's Bash calls.
 
 - **Exit 0, empty stdout** → empty hook. This is the default. Return immediately: print nothing, spawn nothing, say nothing about the hook at all, and proceed to Phase 1. Do **not** narrate that the script returned no agents — that is the narration `HOOKS.md` forbids.
-- **Exit 0, output** → **print the output verbatim** as the resolved agent order, then spawn each listed agent in order per its `mode`.
+- **Exit 0, output** → **print the output verbatim** as the resolved agent order, then spawn each listed agent in order per its `mode`, with the Agent tool and `subagent_type` chosen by the row's `origin`: `farseer:{agent-name}` for `plugin`, `{agent-name}` for `local`.
 - **Any non-zero exit** → **stop**. Surface the script's stderr verbatim and do not continue planning. Exit 3 means an agent file declares an invalid `phase` or `mode`; exit 4 means enrollment drifted. Neither is an empty hook. If the script is missing or not executable, that is also a hard stop — there is no fallback, and you must not reconstruct the routine by hand.
-
-**Capture the enrollment fingerprint** now, for Phase 6's drift check:
-
-```bash
-"{skill-base-dir}/../../hooks/discover-hooks.sh" --fingerprint
-```
-
-Hold that value. **A fingerprint is only ever produced by running the script** — never reconstruct, abbreviate, or recall one from memory. If it is not to hand at Phase 6, re-run the command and say so. A hallucinated digest makes every later check fail with bogus drift and bricks the plan.
 
 **IMPORTANT — no plan name exists yet.** The `pre-plan` hook fires _before_ Phase 1 discovery. The plan name and plan directory are not created until Phase 3, so there is **no plan name to pass**. Each `pre-plan` agent receives only:
 
 1. The raw feature request (the user's verbatim ask).
-2. The project's domain context:
-
-```markdown
-## Domain Context
-
-{paste the COMPLETE content of <domain> verbatim}
-```
-
-3. The project's architecture context:
-
-```markdown
-## Project Architecture
-
-{paste the COMPLETE content of <architecture> verbatim}
-```
+2. The [Project Context](#project-context) list.
 
 Do **not** attempt to pass a plan name or plan directory to a `pre-plan` agent — neither exists yet. The `pre-plan` hook is thin by design (policy gate / house-context injection).
 
@@ -171,11 +171,13 @@ If the branch already exists (resuming a plan), check it out instead:
 git checkout feature/{plan-name}
 ```
 
-**Resolve the plans directory,** once, and reuse `$PLANS_DIR` for every path below. It is `.farseer/plans` unless the project overrides it in `.farseer/config.json` (see [Plans Directory](#plans-directory) in the README). The script answers with an absolute path resolved from the project root, so the result does not depend on the working directory:
+**Resolve the plans directory,** once. It is `.farseer/plans`. The script prints an absolute path resolved from the project root, so the result does not depend on the working directory:
 
 ```bash
-PLANS_DIR="$("{skill-base-dir}/../../hooks/resolve-plans-dir.sh")" || exit 1
+"{skill-base-dir}/../../hooks/resolve-plans-dir.sh"
 ```
+
+**Shell variables do not survive between Bash calls.** Every `$PLANS_DIR` below stands for the path the script printed: write that literal path, quoted, into each later command. Never run a command with an unset `$PLANS_DIR`. An empty value turns `mkdir -p "$PLANS_DIR/{plan-name}"` into `mkdir -p "/{plan-name}"`.
 
 **Never substitute a hand-written `jq` line or a literal `.farseer/plans`.** A non-zero exit means the project root or the configured value is unusable; surface the script's stderr verbatim and stop rather than falling back to the default — writing plans somewhere the project did not ask for is the failure this indirection exists to prevent.
 
@@ -187,13 +189,13 @@ mkdir -p "$PLANS_DIR/{plan-name}"
 
 Use a kebab-case name derived from the feature (e.g., `user-authentication`, `payment-processing`). Quote every path built from `$PLANS_DIR` — a configured directory may contain spaces.
 
-**Record the enrollment fingerprint** so `orchestrate` can detect that hook enrollment changed between planning and execution. Write it by **redirecting a fresh invocation** — do not re-type the value captured at Phase 0:
+**Record the enrollment fingerprint** so Phase 6 and `orchestrate` can detect that hook enrollment changed after planning. Write it by redirecting the script's output:
 
 ```bash
 "{skill-base-dir}/../../hooks/discover-hooks.sh" --fingerprint > "$PLANS_DIR/{plan-name}/.hook-fingerprint"
 ```
 
-The file holds exactly that one line and nothing else — no heading, no comment, no explanation. Writing it as a redirect rather than transcribing a remembered value is deliberate: Phases 1–2 are a long interactive stretch, and a value carried across them is exactly what gets lost and then invented.
+The file holds exactly that one line and nothing else. Never type a fingerprint value into a command. Every later check reads this file.
 
 **Create `_plan.md`:**
 
@@ -365,13 +367,13 @@ After validating dependencies, resolve and run the agents enrolled at the `post-
 
 **1. Resolve `post-plan` agents.**
 
-Run the discovery script, passing the fingerprint captured at Phase 0 so a mid-planning change to agent files is caught:
+Run the discovery script, passing the fingerprint recorded at Phase 3 so a mid-planning change to agent files is caught:
 
 ```bash
-"{skill-base-dir}/../../hooks/discover-hooks.sh" --hook=post-plan --expect="<phase-0 fingerprint>"
+"{skill-base-dir}/../../hooks/discover-hooks.sh" --hook=post-plan --expect="$(cat "$PLANS_DIR/{plan-name}/.hook-fingerprint")"
 ```
 
-Never enumerate agent files by hand. If the Phase 0 value is not to hand, re-run `--fingerprint` to get a current one rather than inventing a digest.
+Never enumerate agent files by hand.
 
 **2. Empty-hook fast path.**
 
@@ -381,11 +383,11 @@ Never enumerate agent files by hand. If the Phase 0 value is not to hand, re-run
 
 On **exit 0 with output**, **PRINT that output verbatim** before spawning anything, so the run is auditable.
 
-**On any non-zero exit, stop.** Surface the script's stderr verbatim and do not proceed to Phase 7. Exit 3 means an agent file declares an invalid `phase` or `mode`; exit 4 means enrollment changed since Phase 0 — the plan directory already holds a current fingerprint, so re-running `planner` proceeds cleanly. A missing or non-executable script is a hard stop with no fallback.
+**On any non-zero exit, stop.** Surface the script's stderr verbatim and do not proceed to Phase 7. Exit 3 means an agent file declares an invalid `phase` or `mode`; exit 4 means enrollment changed since Phase 3. Tell the user to delete `.hook-fingerprint` and re-run `planner` to re-baseline. A missing or non-executable script is a hard stop with no fallback.
 
 **4. Spawn each agent in the resolved order**, sequentially:
 
-Use the Agent tool with `subagent_type="{agent-name}"`. The sub-agent prompt **must** include:
+Use the Agent tool with `subagent_type="farseer:{agent-name}"` for an `origin=plugin` row and `subagent_type="{agent-name}"` for an `origin=local` row. The sub-agent prompt **must** include:
 
 1. The plan name.
 2. The **resolved** plan directory, so the agent never has to read `config.json` or guess a default:
@@ -396,35 +398,13 @@ Use the Agent tool with `subagent_type="{agent-name}"`. The sub-agent prompt **m
 $PLANS_DIR/{plan-name}
 ```
 
-3. The project's domain context, pasted verbatim — do **not** summarize:
-
-```markdown
-## Domain Context
-
-{paste the COMPLETE content of <domain> verbatim}
-```
-
-4. The project's architecture context, pasted verbatim — do **not** summarize:
-
-```markdown
-## Project Architecture
-
-{paste the COMPLETE content of <architecture> verbatim}
-```
-
-5. The project's issue tracking preferences, pasted verbatim — do **not** summarize:
-
-```markdown
-## Project Issue Tracking
-
-{paste the COMPLETE content of <issue-tracking> verbatim}
-```
+3. The [Project Context](#project-context) list.
 
 Pass the concrete path, not the literal `$PLANS_DIR`. Sub-agents stay configuration-unaware by design: one resolver runs here, and every agent is handed a finished path.
 
 **5. After each sub-agent completes**, read any updated plan files to prepare the recap for the user.
 
-Agents enroll in `post-plan` by declaring `phase: post-plan` in their own frontmatter (see `HOOKS.md`). There is no hardcoded default list here — for example, `devils-advocate` participates because it declares `phase: post-plan` in its frontmatter, not because planner names it. To add, remove, or reorder agents at this hook, edit their frontmatter `phase`/`order` (or override a plugin agent with a local `.farseer/agents` file of the same `name`).
+Agents enroll in `post-plan` by declaring `phase: post-plan` in their own frontmatter (see `HOOKS.md`). There is no hardcoded default list here — for example, `devils-advocate` participates because it declares `phase: post-plan` in its frontmatter, not because planner names it. To add, remove, or reorder agents at this hook, edit their frontmatter `phase`/`order` (or override a plugin agent with a `.claude/agents/` file of the same `name`; `phase: none` there switches it off).
 
 ### Phase 7: Review with User
 
@@ -496,7 +476,7 @@ Independent tasks (batch 1): {count of tasks with no dependencies}
 > 2. **No, I'll run it later** - Say "run the {plan-name} plan" anytime to start
 >
 > Optional, for large plans: set a goal first so execution completes unattended —
-> `/goal the {plan-name} plan run reached a terminal state: orchestrate output ALL_TASKS_COMPLETE or TASKS_BLOCKED`
+> `/goal the {plan-name} plan run reached a terminal state: /farseer:orchestrate output ALL_TASKS_COMPLETE or TASKS_BLOCKED`
 
 5. If user chooses to start now:
    - Invoke the `/farseer:orchestrate` skill with the plan name to begin parallel execution

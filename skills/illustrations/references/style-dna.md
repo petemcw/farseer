@@ -12,7 +12,7 @@ Like an explanatory sketch dashed off on blank paper by someone who has spent ye
 - Pure white background: no beige, warm gray, paper texture, gradients, shadows, noise, or vintage-paper feel.
 - Black hand-drawn line art as the base: thin lines, slightly wobbly, not mechanical, not vector, no heavy outlines.
 - Lots of white space: subject fills roughly 40%-60% of the frame, at least 35% empty, ideally with one whole quiet zone.
-- A few handwritten annotations (in the article's language): at most 5-8, each ideally 1-4 words.
+- A few handwritten annotations, in English: at most 5-8, each ideally 1-4 words.
 - One image covers exactly one core action, structure, state, or metaphor.
 - Express structure naturally; never write the structure type name on the image.
 

@@ -17,6 +17,8 @@ You are a TDD programmer implementing a single task. Work autonomously until com
 
 **Bad tests** are coupled to implementation. They mock internal collaborators, test private methods, or verify through external means (like querying a database directly instead of using the interface). The warning sign: your test breaks when you refactor, but behavior hasn't changed. If you rename an internal function and tests fail, those tests were testing implementation, not behavior.
 
+**Tautological tests** recompute the expected value the way the code does (`expect(add(a, b)).toBe(a + b)`, a snapshot derived by hand the same way, a constant asserted equal to itself), so they pass by construction and can never disagree with the code. Expected values must come from an independent source of truth: a known-good literal, a worked example, the spec.
+
 ## Anti-Pattern: Horizontal Slices
 
 **DO NOT write all tests first, then all implementation.** This is "horizontal slicing" - treating RED as "write all tests" and GREEN as "write all code."
@@ -44,7 +46,7 @@ RIGHT (vertical):
 
 ## TDD Process (STRICT)
 
-Use the test commands from the testing file listed under [Project Rules](#project-rules). Look for "TDD Workflow Commands" for optimized commands (RED/GREEN/REFACTOR phases). If not present, use the standard test command. TDD worker agents should **ALWAYS** run module or working code scoped tests only. The orchestrator runs the full suite per batch.
+Use the test commands from the testing file listed under [Project Rules](#project-rules). Look for "TDD Workflow Commands" for optimized commands (RED/GREEN/REFACTOR phases). If not present, use the standard test command. **Always scope every test run** to the module or files you are working on, using the testing file's filter or path arguments. Never run the full suite: other workers share this working tree, and their half-finished edits would fail it. The orchestrator runs the full suite once, after every task is done.
 
 For EACH unchecked requirement in order:
 
@@ -59,8 +61,8 @@ For EACH unchecked requirement in order:
     - Do NOT handle edge cases that aren't tested yet
     - Do NOT implement other requirements yet
     - Do NOT anticipate future tests
-    - Run tests using the parallel test command (always use parallel)
-    - Verify ALL tests pass
+    - Run the scoped tests
+    - Verify all of them pass, not just the new one
 
 3. **REFACTOR** (Tidy First): Clean up while tests stay green
     - Look for refactor candidates:
@@ -131,6 +133,10 @@ If no `## Project Rules` heading is present (direct or manual invocation), read 
 - Make dependencies explicit
 - Minimize state and side effects
 
+**Git:**
+
+- Never stage, commit, stash, check out, reset, or clean. Other workers share this working tree, and any of these touches their edits too. The orchestrator commits once, after the full suite passes.
+
 **General:**
 
 - Follow the code standards file listed under [Project Rules](#project-rules) strictly
@@ -157,7 +163,7 @@ Requirement 2: `{test name}`
 
 After ALL requirements are [x]:
 
-1. Run scoped tests using the parallel test command
+1. Run the scoped tests once more
 2. Verify all tests pass
 3. Output exactly: `TASK_COMPLETE`
 

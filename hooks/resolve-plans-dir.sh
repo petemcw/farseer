@@ -40,14 +40,16 @@ fi
 source "$_plans_script_dir/resolve-project-dir.sh"
 
 # Reads the plansDir value out of a flat JSON object without a JSON parser.
-# Deliberately narrow: one key, a string value, no escapes. Anything it cannot
-# read is reported by the caller as absent, which falls back to the default.
+# Deliberately narrow: one key, a string value, no escapes. Prints nothing when
+# the key is present but its value is not a readable string; the caller treats
+# that as an error rather than falling back.
 #
 # Line-oriented, so it does not understand nesting: a plansDir buried inside
 # another object would be read as if top-level. config.json is a flat file the user
 # writes by hand and nesting this key means nothing, so that is a documented
 # limit rather than a reason to put a JSON parser in bash. Duplicate keys take
-# the last, and a padded value keeps its padding — both match what `jq` returns.
+# the first (unlike `jq`, which takes the last), and a padded value keeps its
+# padding.
 read_plans_dir_key() {
   sed -n 's/.*"plansDir"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$1" 2>/dev/null | head -1
 }
@@ -72,13 +74,14 @@ resolve_plans_dir() {
   value=""
 
   if [ -f "$config" ]; then
-    # Absent key and unreadable value are the same case on purpose: fall back
-    # quietly. A present-but-empty value is a typo, and is reported below.
+    # An absent key falls back to the default quietly. A present key whose
+    # value is empty or not a string (a number, null, a nested object) is a
+    # typo, and is reported rather than silently replaced by the default.
     if grep -q '"plansDir"' "$config" 2>/dev/null; then
       value="$(read_plans_dir_key "$config")"
       if [ -z "$value" ]; then
-        printf 'resolve-plans-dir: error: '\''%s'\'' sets an empty plansDir\n' "$config" >&2
-        printf 'resolve-plans-dir: error:   give it a relative path, or remove the key to use %s\n' "$PLANS_DIR_DEFAULT" >&2
+        printf 'resolve-plans-dir: error: '\''%s'\'' sets plansDir to an empty or non-string value\n' "$config" >&2
+        printf 'resolve-plans-dir: error:   give it a relative path as a string, or remove the key to use %s\n' "$PLANS_DIR_DEFAULT" >&2
         return 1
       fi
     fi

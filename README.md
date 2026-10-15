@@ -52,8 +52,11 @@ To update the Farseer plugin, run the following commands:
 
 ```bash
 /plugin marketplace update farseer
+/plugin install farseer@farseer
 /reload-plugins
 ```
+
+The reload step is required. Without it the session keeps running the old version.
 
 ### Quick Start
 
@@ -153,7 +156,7 @@ There are exactly **8** hook points where enrolled agents can run:
 | `pre-commit`          | After the full test suite passes, before the commit       |
 | `post-commit`         | After the commit, before the push/PR prompt               |
 
-By default, only `devils-advocate` and `issue-creator` are enrolled (at `post-plan`). See **[HOOKS.md](./HOOKS.md)** for the authoritative reference — the full frontmatter schema, the deterministic discovery routine, and tie-break/ordering rules.
+By default, three agents are enrolled: `devils-advocate` at `post-plan`, `issue-creator` at `pre-implementation`, and `code-reviewer` at `post-implementation`. Run `hooks/discover-hooks.sh` from the plugin directory to see the live list. See **[HOOKS.md](./HOOKS.md)** for the authoritative reference — the full frontmatter schema, the deterministic discovery routine, and tie-break/ordering rules.
 
 **Enrollment frontmatter:**
 
@@ -176,22 +179,21 @@ mode: single       # "single" | "batch"; default "single"
 
 Enable, add, remove, or reorder agents by editing frontmatter — never a central file.
 
-- **Enable a built-in agent.** `standards-enforcer` ships with its enrollment commented out. Uncomment its `phase` (and optional `order` / `mode`) to turn it on:
+- **Enable a built-in agent.** `standards-enforcer` ships with its enrollment commented out. Copy it into your project's `.claude/agents/` and uncomment its `phase` (and optional `order` / `mode`) there. Editing the plugin's own copy does not last, because a plugin update overwrites it:
 
   ```yaml
   ---
   name: standards-enforcer
   description: "..."
-  model: opus
-  tools: Read, Edit, Glob, Grep
-  # To enable code-standards enforcement after implementation, uncomment:
+  model: sonnet
+  tools: Read, Edit, Glob, Grep, Bash
   phase: post-implementation
-  order: 50
+  order: 75
   mode: batch
   ---
   ```
 
-- **Add a custom gate.** Drop an agent file into your project's `.farseer/agents/` directory with a `phase`, and it is enrolled automatically:
+- **Add a custom gate.** Drop an agent file into your project's `.claude/agents/` directory with a `phase`, and it is enrolled automatically:
 
   ```markdown
   ---
@@ -208,9 +210,9 @@ Enable, add, remove, or reorder agents by editing frontmatter — never a centra
   {define the agent's behavior, process, and output format}
   ```
 
-- **Disable an agent.** Remove (or comment out) its `phase` key — there is no condition to toggle.
+- **Disable an agent.** For one of your own, remove (or comment out) its `phase` key. For a plugin agent, add a file to `.claude/agents/` with the same `name` and `phase: none`. There is no condition to toggle.
 
-The agent's **filename** (without `.md`) should match its frontmatter `name`. Local agents in `.farseer/agents/` override plugin agents with the same `name` (the local file wins entirely) — the override is keyed on the frontmatter `name`, not the filename.
+The agent's **filename** (without `.md`) should match its frontmatter `name`. A file in `.claude/agents/` that declares a `phase` overrides the plugin agent with the same `name` (the local file wins entirely); the override is keyed on the frontmatter `name`, not the filename. Files there without a `phase` are your ordinary agents and never affect the pipeline. Overrides apply to hook agents only, so a local `tdd-worker.md` is not used. Claude Code reads agent files at session start, so restart after adding one.
 
 **Check what's actually enrolled.** After editing frontmatter, run the discovery script to confirm it took effect. This is the first thing to try when an agent doesn't fire:
 
@@ -223,7 +225,7 @@ The agent's **filename** (without `.md`) should match its frontmatter `name`. Lo
   (empty — no agents enrolled at this hook)
 
 # hook: post-plan
-  order=10    name=devils-advocate                          mode=single
+  order=10    name=devils-advocate                          mode=single origin=plugin
 ...
 ```
 
@@ -279,7 +281,8 @@ Each task follows strict Red → Green → Refactor:
 2. Write minimum code to pass
 3. Refactor while tests stay green
 4. Repeat for next requirement
-5. Commit when task complete
+
+Workers never commit. The orchestrator makes one commit for the whole plan after the full suite passes.
 
 ## Reference
 
@@ -341,24 +344,24 @@ Requirements become test names directly.
 
 ### Skills
 
-All skills can be invoked directly with `/farseer:skill-name` or triggered automatically by Claude when your request matches their description.
+Every skill can be invoked directly with `/farseer:skill-name`. Skills marked **Yes** below also trigger automatically when your request matches their description; the rest run only when you invoke them.
 
-| Skill                           | Invocation                                | Auto-triggers                                                                                         | Description                                                             |
-| ------------------------------- | ----------------------------------------- | ----------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| `architecture-decision-records` | `/farseer:architecture-decision-records`  | Yes - "Create ADR", "Record architecture decision", "Log decision"                                    | Capture architectural decisions made during coding sessions             |
-| `but-how`                       | `/farseer:but-how`                        | No                                                                                                    | Use for 'how does X work'                                               |
-| `but-why`                       | `/farseer:but-why`                        | No                                                                                                    | Use for 'why does X work this way'                                      |
-| `humanize`                        | `/farseer:humanize`                         | Yes                                                                                                   | Cut out AI tells from any writing                                       |
-| `domain-modeling`               | `/farseer:domain-modeling`                | Yes                                                                                                   | Build and sharpen a project's domain model                              |
-| `farseer`                       | `/farseer:farseer`                        | No                                                                                                    | Plan a chunk of work too big for one agent session                      |
-| `git-guardrails`                | `/farseer:git-guardrails`                 | Yes                                                                                                   | Set up Claude Code hooks to block dangerous Git commands                |
-| `interviewer`                   | `/farseer:interviewer`                    | Yes                                                                                                   | Question the user relentlessly                                          |
-| `orchestrate`                   | `/farseer:orchestrate [plan-name]`        | Yes - "Run the plan", "Execute", "Start implementation"                                               | Parallel TDD execution                                                  |
-| `planner`                       | `/farseer:planner [description]`          | Yes - "Build a", "Let's start building", "I want an app that", "Help me implement", etc.              | Interactive planning with codebase discovery and grounded clarification |
-| `repo-setup`                    | `/farseer:repo-setup`                     | No                                                                                                    | Configure project (one-time)                                            |
-| `teach`                         | `/farseer:teach`                          | No                                                                                                    | Teach the user about a specific topic                                   |
-| `triage`                        | `/farseer:triage`                         | No                                                                                                    | Move issues through a state machine of issue roles                      |
-| `understand`                    | `/farseer:understand`                     | No                                                                                                    | Explain a body of work plainly so a person actually understands it      |
+| Skill                           | Invocation                               | Auto-triggers                                                                            | Description                                                             |
+| ------------------------------- | ---------------------------------------- | ---------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| `architecture-decision-records` | `/farseer:architecture-decision-records` | Yes - "Create ADR", "Record architecture decision", "Log decision"                       | Capture architectural decisions made during coding sessions             |
+| `domain-modeling`               | `/farseer:domain-modeling`               | Yes                                                                                      | Build and sharpen a project's domain model                              |
+| `farseer`                       | `/farseer:farseer`                       | No                                                                                       | Plan a chunk of work too big for one agent session                      |
+| `git-guardrails`                | `/farseer:git-guardrails`                | Yes                                                                                      | Set up Claude Code hooks to block dangerous Git commands                |
+| `humanize`                      | `/farseer:humanize`                      | Yes                                                                                      | Cut out AI tells from any writing                                       |
+| `illustrations`                 | `/farseer:illustrations`                 | Yes                                                                                      | Generate hand-drawn in-article illustrations                            |
+| `interviewer`                   | `/farseer:interviewer`                   | Yes                                                                                      | Question the user relentlessly                                          |
+| `orchestrate`                   | `/farseer:orchestrate [plan-name]`       | Yes - "Run the plan", "Execute", "Start implementation"                                  | Parallel TDD execution                                                  |
+| `planner`                       | `/farseer:planner [description]`         | Yes - "Build a", "Let's start building", "I want an app that", "Help me implement", etc. | Interactive planning with codebase discovery and grounded clarification |
+| `prototype`                     | `/farseer:prototype`                     | Yes                                                                                      | Build a throwaway prototype that answers a design question              |
+| `repo-setup`                    | `/farseer:repo-setup`                    | No                                                                                       | Configure project (one-time)                                            |
+| `researcher`                    | `/farseer:researcher`                    | Yes                                                                                      | Research a question against primary sources and save the findings       |
+| `teach`                         | `/farseer:teach`                         | No                                                                                       | Teach the user about a specific topic                                   |
+| `triage`                        | `/farseer:triage`                        | No                                                                                       | Move issues through a state machine of issue roles                      |
 
 ### Outputs
 
@@ -377,9 +380,10 @@ farseer/
 ├── .claude/
 │   └── CLAUDE.md                           # Farseer's own project config (not shipped to users)
 ├── agents/
+│   ├── code-reviewer.md                    # Maintainability review after implementation (opus)
 │   ├── devils-advocate.md                  # Plan reviewer - finds gaps before execution (opus)
-│   ├── issue-creator.md                    # Creates issues based on plan gaps (sonnet)
-│   ├── standards-enforcer.md               # Code standards enforcement (opus)
+│   ├── issue-creator.md                    # Publishes plan issues to a remote tracker (sonnet)
+│   ├── standards-enforcer.md               # Code standards enforcement (sonnet)
 │   └── tdd-worker.md                       # TDD implementation worker (sonnet)
 ├── hooks/
 │   ├── discover-hooks.sh*                  # Deterministic hook-agent discovery (see HOOKS.md)
@@ -387,19 +391,21 @@ farseer/
 │   └── resolve-project-dir.sh*
 ├── skills/
 │   ├── architecture-decision-records/
-│   ├── but-how/
-│   ├── but-why/
 │   ├── domain-modeling/
 │   ├── farseer/
 │   ├── git-guardrails/
 │   ├── humanize/
+│   ├── illustrations/
 │   ├── interviewer/
 │   ├── orchestrate/
 │   ├── planner/
+│   ├── prototype/
 │   ├── repo-setup/
+│   ├── researcher/
 │   ├── teach/
-│   ├── triage/
-│   └── understand/
+│   └── triage/
+├── tests/
+│   └── hooks.sh*                           # Hook and guardrail script tests (bash 3.2)
 ├── HOOKS.md                                # Authoritative hook/frontmatter reference
 ├── LICENSE
 └── README.md

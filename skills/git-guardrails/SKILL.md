@@ -11,9 +11,11 @@ Sets up a `PreToolUse` hook that intercepts and blocks dangerous Git commands be
 
 - `git push` (all variants including `--force`)
 - `git reset --hard`
-- `git clean -f` / `git clean -fd`
-- `git branch -D`
-- `git checkout .` / `git restore .`
+- `git clean` with any force flag (`-f`, `-fd`, `-xfd`, `--force`)
+- `git branch -D`, and `--delete` combined with `--force`
+- `git checkout .` / `git checkout -- .` / `git restore .`
+
+The script checks each command in a chain (`cd x && git push`) and sees through git's global options (`git -C dir push`, `git --no-pager push`). Text that merely mentions a command, like `echo "git push"`, is allowed. It needs `jq`, and blocks everything if `jq` is missing rather than silently allowing it. It is a guardrail against accidents, not a security boundary: `bash -c "git push"` is not inspected.
 
 When blocked, Claude sees a message telling it that it does not have authority to access these commands.
 
@@ -29,8 +31,8 @@ The bundled script is at: [scripts/block-dangerous-commands.sh](scripts/block-da
 
 Copy it to the target location based on scope:
 
--- **Project**: `.claude/hooks/block-dangerous-commands.sh`
--- **Global**: `~/.claude/hooks/block-dangerous-commands.sh`
+- **Project**: `.claude/hooks/block-dangerous-commands.sh`
+- **Global**: `~/.claude/hooks/block-dangerous-commands.sh`
 
 Make it executable with `chmod +x`.
 

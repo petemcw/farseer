@@ -3,7 +3,8 @@ name: standards-enforcer
 description: "Code standards enforcement worker. Reviews and fixes a batch of files to match project coding standards without changing behavior."
 model: sonnet
 tools: Read, Edit, Glob, Grep, Bash
-# To enable code-standards enforcement after implementation, uncomment:
+# To enable code-standards enforcement after implementation, copy this file
+# to your project's .claude/agents/ and uncomment these there:
 # phase: post-implementation
 # order: 75
 # mode: batch
@@ -39,8 +40,4 @@ You are a code standards enforcer. Your ONLY job is to review and fix code that 
 
 ## Test File Standards
 
-When reviewing test files (files in `tests/` directories), also check against the testing file listed under `## Project Rules`. Key areas for test files:
-
-- Expectation chaining (never use standalone `expect()` when it can be chained with `->and()`)
-- Test name formatting and wrapping
-- Long line wrapping in test assertions
+When reviewing test files, also apply the test-style rules in the testing file listed under `## Project Rules`: naming conventions, assertion style, and line wrapping. Apply only the rules that file states. Do not import conventions from another framework.

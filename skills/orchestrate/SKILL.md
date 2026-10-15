@@ -4,7 +4,7 @@ description: Execute implementation plans with parallel TDD workers. Use when re
 argument-hint: "[plan-name]"
 ---
 
-# Plan Orchestrate
+# Orchestrate
 
 Execute all tasks in a plan using parallel TDD workers. Fully autonomous after invocation.
 
@@ -18,19 +18,16 @@ Example: `orchestrate user-auth`
 
 ## Prerequisites
 
-**First, resolve the plans directory,** once, and reuse `$PLANS_DIR` for every path below. It is `.farseer/plans` unless the project overrides it in `.farseer/config.json` (see [Plans Directory](#plans-directory) in the README). The script answers with an absolute path resolved from the project root, so the result does not depend on the working directory:
+**First, resolve the plans directory and the project root,** once each. The plans directory is `.farseer/plans` unless the project overrides it in `.farseer/config.json`. Both scripts print an absolute path resolved from the project root, so the result does not depend on the working directory:
 
 ```bash
-PLANS_DIR="$("{skill-base-dir}/../../hooks/resolve-plans-dir.sh")" || exit 1
+"{skill-base-dir}/../../hooks/resolve-plans-dir.sh"
+"{skill-base-dir}/../../hooks/resolve-project-dir.sh"
 ```
 
-**Never substitute a hand-written `jq` line or a literal `.farseer/plans`.** A non-zero exit means the project root or the configured value is unusable; surface the script's stderr verbatim and stop. Quote every path built from `$PLANS_DIR` — a configured directory may contain spaces.
+**Shell variables do not survive between Bash calls.** Every `$PLANS_DIR` and `$PROJECT_DIR` below stands for the path these scripts printed: write that literal path, quoted, into each later command. Never run a command with an unset `$PLANS_DIR`. An empty value turns `"$PLANS_DIR/{plan-name}"` into `/{plan-name}` and `git reset -- "$PLANS_DIR"` into an error.
 
-**Resolve the project root** the same way, once, for the [Project Rules](#project-rules) paths:
-
-```bash
-PROJECT_DIR="$("{skill-base-dir}/../../hooks/resolve-project-dir.sh")" || exit 1
-```
+**Never substitute a hand-written `jq` line or a literal `.farseer/plans`.** A non-zero exit means the project root or the configured value is unusable; surface the script's stderr verbatim and stop. Quote every path, since a configured directory may contain spaces.
 
 Then:
 
@@ -41,7 +38,7 @@ Then:
 Check prerequisites:
 
 ```bash
-ls "$PLANS_DIR/{plan-name}/_plan.md" .farseer/testing.md 2>/dev/null
+ls "$PLANS_DIR/{plan-name}/_plan.md" "$PROJECT_DIR/.farseer/testing.md"
 ```
 
 If not found, output error and stop.
@@ -62,11 +59,7 @@ If the current branch is not `feature/{plan-name}`:
 
 ## Project Configuration
 
-<testing>
-@.farseer/testing.md
-</testing>
-
-The orchestrator loads `<testing>` because it runs the full suite itself (Step 4a). It does not load the code standards. Subagents read the rules files on their own from the [Project Rules](#project-rules) list.
+The orchestrator does not load `testing.md` or `code-standards.md` up front. It reads `testing.md` at [Step 4a](#step-4a-end-of-run-hooks-post-implementation--tests--commit), when it needs the full-suite command. Subagents read the rules files on their own from the [Project Rules](#project-rules) list.
 
 ### Project Rules
 
@@ -92,9 +85,9 @@ Display:
 Tip: for large plans, you can keep this run going unattended with Claude Code's
 built-in /goal command (interrupt me now to set it, or set it before a future run):
 
-  /goal the {plan-name} plan run reached a terminal state: plan-orchestrate output ALL_TASKS_COMPLETE or TASKS_BLOCKED
+  /goal the {plan-name} plan run reached a terminal state: /farseer:orchestrate output ALL_TASKS_COMPLETE or TASKS_BLOCKED
 
-Either way, an interrupted run resumes from disk. Just re-run plan-orchestrate {plan-name}.
+Either way, an interrupted run resumes from disk. Just re-run /farseer:orchestrate {plan-name}.
 ```
 
 The suggested condition deliberately names **both** terminal outputs. A goal phrased as only `ALL_TASKS_COMPLETE` leaves the evaluator demanding more turns after a legitimately blocked run, when the correct behavior is to stop and report the blockage.
@@ -104,9 +97,9 @@ The suggested condition deliberately names **both** terminal outputs. A goal phr
 Read plan files:
 
 - `$PLANS_DIR/{plan-name}/_plan.md` - Plan overview
-- `$PLANS_DIR/{plan-name}/*.md` - All task files (excluding \_plan.md)
+- `$PLANS_DIR/{plan-name}/issues/*.md` - All task files
 
-Note: Testing is auto-included above. Build the [Project Rules](#project-rules) list now.
+Build the [Project Rules](#project-rules) list now.
 
 Parse each task file to extract:
 
@@ -125,16 +118,13 @@ If plan status is `ready`, change to `in_progress`:
 - Edit `$PLANS_DIR/{plan-name}/_plan.md`
 - Set `## Status` to `in_progress`
 
-**Establish the run fingerprint.** Every hook call below passes this back via `--expect=`, so that agent files changing mid-run halt the orchestration rather
-than silently swapping the pipeline. Read `$PLANS_DIR/{plan-name}/.hook-fingerprint` and handle these three distinct states. Avoid conflating them:
+**Check the run fingerprint.** Every hook call reads `$PLANS_DIR/{plan-name}/.hook-fingerprint` and passes it as `--expect=` (see [Hook Discovery](#hook-discovery)), so agent files changing mid-run halt the orchestration rather than silently swapping the pipeline. If the file is **missing**, capture one now so a resumed run is covered too:
 
-| State                                                                          | Action                                                                                                                                                                                                                                                                  |
-| ------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Present and parseable** (one line: `discover-hooks-fingerprint-v1 <64-hex>`) | Use it as `$RUN_FINGERPRINT`. Pass the file's contents **verbatim** — do not trim, reformat, or re-derive them.                                                                                                                                                         |
-| **Missing**                                                                    | Not an error. Plans created before this feature have none. Capture one and write it to the plan directory so a resumed run is covered too, then continue: `"{skill-base-dir}/../../hooks/discover-hooks.sh" --fingerprint > "$PLANS_DIR/{plan-name}/.hook-fingerprint"` |
-| **Present but unparseable** (empty, truncated, prose, wrong length)            | **Halt.** Do not silently recapture — that would mask a botched write. Tell the user to delete the file to re-baseline.                                                                                                                                                 |
+```bash
+"{skill-base-dir}/../../hooks/discover-hooks.sh" --fingerprint > "$PLANS_DIR/{plan-name}/.hook-fingerprint"
+```
 
-**Never reconstruct, abbreviate, or recall a fingerprint from memory.** It is only ever produced by running the script. A hallucinated digest fails every subsequent hook with bogus drift and bricks the run.
+If the file exists, leave it alone. A malformed one makes the script exit 2; stop and tell the user to delete the file to re-baseline. Never type a fingerprint value into a command, only the `cat` of the file.
 
 ### Step 2a: Pre-Implementation Hook
 
@@ -176,8 +166,8 @@ if all(task.status == "completed" for task in tasks):
 
 ```text
 if len(ready_tasks) == 0 and len(running) == 0:
-    if any(task.status == "pending" for task in tasks):
-        # Tasks exist but none are ready and nothing is running - dependency deadlock or all blocked
+    if any(task.status != "completed" for task in tasks):
+        # Nothing can start and nothing is running: blocked tasks, or pending tasks that depend on them
         blocked_tasks = [t for t in tasks if t.status == "blocked"]
         Output: TASKS_BLOCKED: {list blocked task numbers and reasons}
         STOP
@@ -198,10 +188,10 @@ All hooks in this skill (`pre-implementation`, `pre-batch`, `post-batch`, `post-
 For a given `HOOK`:
 
 ```bash
-"{skill-base-dir}/../../hooks/discover-hooks.sh" --hook=<HOOK> --expect="$RUN_FINGERPRINT"
+"{skill-base-dir}/../../hooks/discover-hooks.sh" --hook=<HOOK> --expect="$(cat "$PLANS_DIR/{plan-name}/.hook-fingerprint")"
 ```
 
-`{skill-base-dir}` is the **`Base directory for this skill`** value stated when this skill loaded — it is given verbatim, so no path inference is needed. `${CLAUDE_PLUGIN_ROOT}` is **not** available in a skill's Bash calls. `$RUN_FINGERPRINT` is the value established at [Step 2](#step-2-update-plan-status).
+`{skill-base-dir}` is the **`Base directory for this skill`** value stated when this skill loaded — it is given verbatim, so no path inference is needed. `${CLAUDE_PLUGIN_ROOT}` is **not** available in a skill's Bash calls. Write `$PLANS_DIR` as the literal resolved path (see [Prerequisites](#prerequisites)).
 
 Then, by result:
 
@@ -214,11 +204,11 @@ Then, by result:
 
 **Only exit 0 with empty stdout is an empty hook.** Every other non-zero exit is an error to report loudly.
 
-On a normal (exit 0, non-empty) result, spawn each agent per its **`mode` field** (`single` → one sub-agent for the whole plan; `batch` → split the relevant file list into batches of ~10 and spawn parallel sub-agents, one Task call per batch, all in a single message). The spawn mode comes from the agent's `mode` frontmatter field, never from sniffing the agent body text.
+On a normal (exit 0, non-empty) result, spawn each agent per its **`mode` field** (`single` → one sub-agent for the whole plan; `batch` → split the relevant file list into batches of ~10 and spawn parallel sub-agents, one Agent call per batch, all in a single message). The spawn mode comes from the agent's `mode` frontmatter field, never from sniffing the agent body text.
 
 ### Spawning hook agents
 
-Hook agents are spawned with the Task tool using `subagent_type="{agent-name}"`. Give each hook agent the [Project Rules](#project-rules) list. The agent reads the files itself, so do not paste their contents.
+Hook agents are spawned with the Agent tool, choosing `subagent_type` by the row's `origin`: `farseer:{agent-name}` for `origin=plugin`, `{agent-name}` for `origin=local` (see [Spawning](../../HOOKS.md#spawning) in `HOOKS.md`). Give each hook agent the [Project Rules](#project-rules) list. The agent reads the files itself, so do not paste their contents.
 
 For a **`batch`** agent, send one prompt per batch:
 
@@ -234,7 +224,27 @@ Read every file below in full before reviewing:
 {list of files in this batch, one per line}
 ```
 
-For a **`single`** agent, send one prompt covering the whole plan, including the plan name, the changed-files list, and the `## Project Rules` list.
+For a **`single`** agent, send one prompt covering the whole plan:
+
+```markdown
+## Plan Directory
+
+{the concrete resolved path, e.g. /abs/project/.farseer/plans/{plan-name}}
+
+## Project Rules
+
+Read every file below in full before starting:
+
+{the Project Rules list, one absolute path per line}
+
+## Project Issue Tracking
+
+{absolute path to $PROJECT_DIR/.farseer/issue-tracker.md, or "none" if it does not exist}
+
+## Files to Review
+
+{the changed-files list; omit this section at pre-implementation, where nothing has changed yet}
+```
 
 > If a hook agent needs project architecture, that is out of scope for this
 > orchestrator — it does not load `<architecture>`. Do NOT fabricate an
@@ -253,11 +263,13 @@ When all tasks are complete, run the end-of-run hook sequence. The control flow 
 
 **1. Run the `post-implementation` hook:**
 
-Resolve and run enrolled agents via the [Hook Discovery](#hook-discovery) routine with `HOOK = post-implementation`. To give batch agents a file list, first compute the changed files (this stages everything only to read the list, then unstages. nothing is committed). The plans directory is left out. Plan files are working state, not code for agents to review.
+Resolve and run enrolled agents via the [Hook Discovery](#hook-discovery) routine with `HOOK = post-implementation`. Before spawning anything, **checkpoint the implementation** and compute the changed files for batch agents. This stages everything only to snapshot it as a tree object and read the list, then unstages; nothing is committed. The plans directory is left out, because plan files are working state, not code for agents to review.
 
 ```bash
-git add -A && git reset -q -- "$PLANS_DIR" && git diff --name-only --cached && git reset HEAD
+git add -A && git reset -q -- "$PLANS_DIR" && git write-tree > "$PLANS_DIR/{plan-name}/.impl-tree" && git diff --name-only --cached; git reset -q
 ```
+
+The `.impl-tree` file is what [Test-failure isolation](#test-failure-isolation) compares against. Write the checkpoint even when the hook turns out to be empty.
 
 Then spawn the resolved agents per their `mode` (see [Spawning hook agents](#spawning-hook-agents)). **Exit 0 with empty stdout** is an empty hook: return immediately, no logging, no work, and proceed to step 2.
 
@@ -265,7 +277,7 @@ Then spawn the resolved agents per their `mode` (see [Spawning hook agents](#spa
 
 **2. After ALL post-implementation agents complete, run validation:**
 
-Run the full test suite once per batch. Individual workers should run code or module scoped tests only.
+This is the only full-suite run. Workers run scoped tests only, because they share one working tree. Read `$PROJECT_DIR/.farseer/testing.md` now for the command, then run it:
 
 ```bash
 # Run full test suite
@@ -283,10 +295,15 @@ Resolve and run enrolled agents via [Hook Discovery](#hook-discovery) with `HOOK
 **Exit 0 with empty stdout** is an empty hook (silent no-op);
 **any non-zero exit stops the run before the commit** — see [Hook Discovery](#hook-discovery).
 
-> If a `pre-commit` agent modifies files, those edits are part of this commit. A
-> pre-commit agent that changes files could break tests; that risk is covered by
-> the [Test-failure isolation](#test-failure-isolation) stash, which now spans
-> both post-implementation and pre-commit hook output.
+If agents are enrolled, snapshot the tree before spawning them, then compare after they finish:
+
+```bash
+git add -A && git reset -q -- "$PLANS_DIR" && git write-tree > "$PLANS_DIR/{plan-name}/.pre-commit-tree"; git reset -q
+# ...pre-commit agents run...
+git add -A && git reset -q -- "$PLANS_DIR" && git diff --quiet --cached "$(cat "$PLANS_DIR/{plan-name}/.pre-commit-tree")"; echo "diff_exit=$?"; git reset -q
+```
+
+`diff_exit=0` means the agents edited nothing: go to step 5. Otherwise their edits become part of this commit, so **re-run the full suite** first. If it fails, go to [Test-failure isolation](#test-failure-isolation). Its patch covers every hook edit since the checkpoint, pre-commit's included.
 
 **5. Commit:**
 
@@ -328,23 +345,29 @@ Output: `ALL_TASKS_COMPLETE`
 
 #### Test-failure isolation
 
-If the full test suite fails at step 3 (or after pre-commit edits), isolate whether the **hook agents** (any `post-implementation` or `pre-commit` agent that edited files) broke things versus the implementation itself. The git stash isolation spans **both** the post-implementation and pre-commit hook output:
+If the full test suite fails, isolate whether the **hook agents** (any `post-implementation` or `pre-commit` agent that edited files) broke things or the implementation itself did. Never use `git stash` here. Nothing is committed yet, so a stash takes the workers' edits along with the hooks', and dropping it destroys them.
+
+Save every hook edit since the [checkpoint](#step-4a-end-of-run-hooks-post-implementation--tests--commit) as a patch:
 
 ```bash
-git stash
+git add -A && git reset -q -- "$PLANS_DIR" && git diff --binary --cached "$(cat "$PLANS_DIR/{plan-name}/.impl-tree")" > "$PLANS_DIR/{plan-name}/hook-changes.patch"; git reset -q
 ```
 
-Re-run the test suite on just the implementation.
+If the patch is empty, the hooks changed nothing and the failure is the implementation's: output `TASKS_BLOCKED` with the failing tests. Otherwise take the hook edits out and re-run the suite on the implementation alone:
 
-- If implementation tests pass: a hook agent (post-implementation or pre-commit) broke something. Drop the stash, commit implementation only, and output:
+```bash
+git apply -R "$PLANS_DIR/{plan-name}/hook-changes.patch"
+```
+
+- **Implementation tests pass:** a hook agent broke something. Commit the implementation only (step 5), keep the patch file, and output:
 
   ```text
   ALL_TASKS_COMPLETE
 
-  WARNING: A post-implementation or pre-commit hook agent broke tests. Implementation committed without hook fixes. Review and run manually.
+  WARNING: A post-implementation or pre-commit hook agent broke tests. Implementation committed without hook changes; they are saved in {plan dir}/hook-changes.patch for review.
   ```
 
-- If implementation tests also fail: a TDD worker produced broken code. Restore the stash (`git stash pop`) and output `TASKS_BLOCKED` with details.
+- **Implementation tests also fail:** a TDD worker produced broken code. Put the hook edits back with `git apply "$PLANS_DIR/{plan-name}/hook-changes.patch"` and output `TASKS_BLOCKED` with details.
 
 ### Step 5: Launch a Batch
 
@@ -366,11 +389,13 @@ batch = ready_tasks
 **Launch.** Spawn one `tdd-worker` per task as a **background** subagent, all in a single message, and do **not** wait for them here:
 
 ```text
-Use the Task tool with subagent_type="tdd-worker" and run_in_background=true for EACH task in the batch.
-All Task tool calls for the batch go in a SINGLE message.
+Use the Agent tool with subagent_type="farseer:tdd-worker", run in the background, for EACH task in the batch.
+All Agent tool calls for the batch go in a SINGLE message.
 ```
 
-**At the subagent limit.** A spawn that fails with `Concurrent subagent limit reached` never started, so it is not a failure of the task: set that task back to `pending`, remove it from the running set, and do **not** increment its retry count. Set `at_limit`, and do not retry the spawn. The next completion in Step 6 clears `at_limit` and frees a slot. If the running set is empty when this happens, no completion is coming to free a slot (the limit is taken by subagents outside this run): surface the error and stop (see [Stopping mid-run](#stopping-mid-run)).
+#### At the subagent limit
+
+A spawn that fails with `Concurrent subagent limit reached` never started, so it is not a failure of the task: set that task back to `pending`, remove it from the running set, and do **not** increment its retry count. Set `at_limit`, and do not retry the spawn. The next completion in Step 6 clears `at_limit` and frees a slot. If the running set is empty when this happens, no completion is coming to free a slot (the limit is taken by subagents outside this run): surface the error and stop (see [Stopping mid-run](#stopping-mid-run)).
 
 Output one line, then continue to Step 6:
 
@@ -383,7 +408,7 @@ Batch {B} launched: tasks {list} (running {len(running)})
 ```markdown
 ## Task File Path
 
-{the concrete resolved path, e.g. $PLANS_DIR/{plan-name}/{task-file}.md}
+{the concrete resolved path, e.g. /abs/project/.farseer/plans/{plan-name}/issues/{task-file}.md}
 
 ## Project Rules
 
@@ -514,8 +539,11 @@ ALL_TASKS_COMPLETE
 Plan: {plan-name}
 Total tasks: {N}
 All tests passing.
-Post-implementation hooks complete.
-Commits created: {N}
+Commit: {short sha}
+
+## Hook Agents
+
+{one line per hook agent that ran: its name and the summary it returned, e.g. what code-reviewer changed or left alone. Omit this section if no hook agent ran.}
 
 ## What Changed
 

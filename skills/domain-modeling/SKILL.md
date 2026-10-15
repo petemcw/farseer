@@ -1,6 +1,6 @@
 ---
 name: domain-modeling
-description: Build and sharpen a project's domain model. Use when discussing codebase terminology, writing or editing a `domain.md`, or recording or editing an ADR.
+description: Build and sharpen a project's domain model. Use when discussing codebase terminology or writing or editing a `domain.md`.
 ---
 
 # Domain modeling
@@ -18,7 +18,7 @@ Build and sharpen the project's domain model as you design. This is the active d
 └── src/
 ```
 
-Create files lazily, only when you have something to write. If no `.farseer/adr/` directory exists, create it when the first ADR is needed.
+Create `domain.md` lazily, only when you have something to write. ADRs, and the `.farseer/adr/` directory, belong to the `architecture-decision-records` skill.
 
 ## During the session
 
@@ -44,12 +44,6 @@ When a term is resolved, update `.farseer/domain.md` right there. Don't batch th
 
 Keep `.farseer/domain.md` free of implementation details. It is not a spec, a scratch pad, or a place to record implementation decisions. It is a glossary and nothing else.
 
-### Offer ADRs sparingly
+### Hand decisions to the ADR skill
 
-Only offer to create an ADR when all three are true:
-
-1. **Hard to reverse.** Changing your mind later would cost something real.
-2. **Surprising without context.** A future reader will wonder "why did they do it this way?"
-3. **A real trade-off.** There were genuine alternatives and you picked one for specific reasons.
-
-If any of the three is missing, skip the ADR. Use the Skill tool with `architecture-decision-records` to create one only when all three hold.
+When a decision settles that might deserve an ADR, use the Skill tool with `architecture-decision-records`. It applies the test for whether an ADR is warranted and writes it. Do not create ADR files from this skill.

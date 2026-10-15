@@ -15,7 +15,10 @@ The plugin's own workflow is for *consumer* projects.
 
 ```bash
 # Lint shell
-shellcheck hooks/*.sh
+shellcheck hooks/*.sh tests/*.sh skills/git-guardrails/scripts/*.sh
+
+# Test hook scripts (run with stock macOS bash to catch 3.2 breakage)
+/bin/bash tests/hooks.sh
 ```
 
 ## Key Conventions
@@ -24,7 +27,7 @@ shellcheck hooks/*.sh
 - **`LC_ALL=C` on every `sort` and `awk`**, or ordering differs between a macOS `en_US.UTF-8` user and a Linux `C` one.
 - **BSD tools only** — no `grep -P`, no GNU `sed -i` semantics, no awk `gensub`. The plugin ships to macOS and Linux.
 - **Never `ls "$DIR"/*.md`** — plugin install paths contain spaces. Use `shopt -s nullglob` with a `for` glob loop, and quote every path expansion.
-- Hook scripts self-locate via `${BASH_SOURCE[0]}`; project root comes from `${CLAUDE_PROJECT_DIR:-$PWD}`.
+- Hook scripts self-locate via `${BASH_SOURCE[0]}`; project root comes from `hooks/resolve-project-dir.sh` (`CLAUDE_PROJECT_DIR`, else the nearest `.farseer/` ancestor, else the git root). It never falls back to `$PWD`.
 - **`${CLAUDE_PLUGIN_ROOT}` is only set for `hooks.json` entries**, not for a skill's Bash calls. Skills use the `Base directory for this skill` value the harness states at load.
 - `HOOKS.md` is the authoritative reference for the hook system. Skills point there rather than restating the routine.
 - Hook discovery is `hooks/discover-hooks.sh`. Never enumerate agent files by hand or write a glob loop to do it.

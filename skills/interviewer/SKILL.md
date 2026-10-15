@@ -11,9 +11,13 @@ Work the decision tree in **frontier rounds**.
 
 The **frontier** is every decision whose prerequisites are already settled; the questions you can ask _now_ without guessing at answers you haven't heard yet. Ask the whole frontier in one round; number each question and give your recommended answer. Then wait for the user's answers before the next round.
 
-**Every question this skill puts to the user goes through the `AskUserQuestion` tool**. Each round is up to four questions per call, and a larger frontier is consecutive calls within the same round. When presenting options, provide genuine but accurate alternatives, the recommended one should always be first and labeled "(Recommended)", its one-line reason or multi-select when the options are not mutually exclusive. An open-ended question still must go through the tool, whose built-in free-text path carries the user's own words.
+**Every question this skill puts to the user goes through the `AskUserQuestion` tool.** Each call holds up to four questions; a larger frontier takes consecutive calls within the same round. For each question:
 
-Word each question so "yes" accepts your recommended answer.
+- Offer genuine, distinct alternatives as options.
+- Put your recommended option first, label it "(Recommended)", and give its one-line reason in the option description.
+- Use multi-select when the options are not mutually exclusive.
+
+An open-ended question still goes through the tool. Its built-in free-text option carries the user's own words.
 
 **Only when the `AskUserQuestion` tool is unavailable**, fall back to formatting a round like so:
 
@@ -28,6 +32,8 @@ Word each question so "yes" accepts your recommended answer.
 
 ➡️ <your recommended answer>
 ```
+
+In this fallback, word each question so that "yes" accepts your recommended answer.
 
 Each round the user answers reshapes the tree. Settled decisions push the frontier outward and unblock questions that depended on them. Recompute the frontier and ask the next round. A question whose answer depends on another question still open in this round belongs to a _later_ round, not this one.
 

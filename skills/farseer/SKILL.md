@@ -64,7 +64,7 @@ Each ticket is a child issue of the map, and the tracker's issue ID is its ident
 <the decision or investigation this ticket resolves>
 ```
 
-Each ticket carries a `farseer:<type>` label, one of `research`, `prototype`, `interviewing`, or `task` (see [Ticket Types](#ticket-types)).
+Each ticket carries a `farseer:<type>` label, one of `research`, `prototype`, `interviewing`, or `task` (see [Ticket Types](#ticket-types)). `farseer:` labels are the only labels a map and its tickets carry, never a triage label like `ready-for-agent`: they are decisions, not implementation work.
 
 A session claims a ticket by assigning it to the developer driving the map. Do this first, before any work, so concurrent sessions skip it. The assignee is the claim. An open, unassigned ticket is unclaimed.
 
@@ -76,7 +76,7 @@ The answer isn't part of the body. It's recorded on resolution (see [Work Throug
 
 Every ticket is either HITL (human in the loop, worked with a human who speaks for themselves) or AFK, driven by the agent alone. A HITL ticket only resolves through that live exchange. The agent never stands in for the human's side of it. An interviewing agent that answers its own questions has broken this.
 
-- **Research** (AFK). Read documentation, third-party APIs, or local resources like knowledge bases to surface a fact a decision waits on. A subagent resolves it by calling the Skill tool with `research`. Use it when the answer lives outside the current working directory.
+- **Research** (AFK). Read documentation, third-party APIs, or local resources like knowledge bases to surface a fact a decision waits on. A subagent resolves it by calling the Skill tool with `researcher`. Use it when the answer lives outside the current working directory.
 - **Prototype** (HITL). Raise the fidelity of the discussion with a cheap, rough, concrete artifact to react to. That might be an outline, a stub, or UI or logic code. Make it by calling the Skill tool with `prototype`, and link the prototype as an asset. Use it when "how should it look" or "how should it behave" is the key question.
 - **Interviewing** (HITL). Conversation. This is the default case. Always call the Skill tool twice, for `interviewer` and `domain-modeling`.
 - **Task** (HITL or AFK). Manual work that must happen before a decision can be made. There is nothing to decide, prototype, or research, but the discussion is stuck until it's done. Examples are signing up for a service so its API can be judged, provisioning access, or moving data so its shape can be seen. This is the one type that does rather than decides, and it earns its place by unblocking a decision, not by delivering the destination. The agent drives it alone where it can (AFK). Otherwise it hands the human a precise checklist (HITL). It resolves when the work is done. The answer records what was done and any facts later tickets depend on, such as where credentials live, new URLs, or row counts.
@@ -110,11 +110,11 @@ Two modes. Either way, never resolve more than one ticket per session. Research 
 
 The user invokes with a loose idea.
 
-1. **Name the destination.** Call the Skill tool twice, for "interviewer" and "domain-modeling", to pin down what this map is finding its way to. That's the spec, decision, or change. The destination fixes the scope, so settle it first.
+1. **Name the destination.** Call the Skill tool twice, for `interviewer` and `domain-modeling`, to pin down what this map is finding its way to. That's the spec, decision, or change. The destination fixes the scope, so settle it first.
 2. **Map the frontier.** Interview again, breadth-first this time. Fan out across the whole space rather than deep on any one thread, surfacing the open decisions and the first steps takeable now. If this surfaces no fog, the way to the destination is already clear and the whole journey fits in one session. You don't need a map. Stop and ask the user how they'd like to proceed.
 3. **Create the map** with the label `farseer:map`. Fill in Destination and Notes, leave Decisions So Far empty, and sketch the fog into Not Yet Specified.
-4. **Create the tickets you can specify now** as child issues of the map. Then wire blocking edges in a second pass, since issues need IDs before they can reference each other. Wiring sorts them into the frontier and the blocked. Everything you can't yet specify stays in Not Yet Specified.
-5. **Fire the research subagents.** For each `research` ticket you just created, spin up a subagent that calls the Skill tool with `research` to resolve it in parallel. It captures its findings on a throwaway `research/<name>` branch with a context pointer from the ticket.
+4. **Create the tickets you can specify now** as child issues of the map, then wire blocking edges in a **second pass** (issues need ids before they can reference each other). Write cross-references in that pass too, with real ids: a placeholder `#<n>` auto-links to an unrelated issue. Wiring sorts them into the frontier and the blocked; everything you can't yet specify stays in the fog: the **Not yet specified** section.
+5. **Fire the research subagents.** For each `research` ticket you just created, spin up a subagent that calls the Skill tool with `researcher` to resolve it in parallel, capturing its findings on a throwaway `research/<name>` branch with a context pointer from the ticket. Push the branch but open no PR: it is never merged.
 6. **Stop.** Charting is one session's work. It hand-resolves nothing.
 
 ### Work Through the Map
@@ -123,7 +123,7 @@ The user invokes with a map (URL or number). A ticket is optional. Without one, 
 
 1. Load the map. This is the low-res view, not every ticket body.
 2. Choose the ticket. If the user named one, use it. Otherwise take the first frontier ticket in order. Claim it by assigning it to yourself before any work.
-3. Resolve it. Zoom as needed by fetching the full body of any related or closed ticket on demand. Call the Skill tool for whichever skills the Notes block names. If in doubt, call the Skill tool twice, for `interviewer` and `domain-modeling`.
+3. Resolve it as the type its `farseer:<type>` label names (see [Ticket Types](#ticket-types)). Read the label, not just the body: the body never states the type. **Zoom as needed**: fetch the full body of any related or closed ticket on demand; call the Skill tool for whichever skills the `## Notes` block names. If in doubt, call the Skill tool twice, for `interviewer` and `domain-modeling`.
 4. Record the resolution. Post the answer as a resolution comment, close the issue, and append a context pointer to the map's Decisions So Far.
 5. Add newly surfaced tickets, create-then-wire. Graduate any fog the answer has made specifiable, clearing each graduated patch from Not Yet Specified so it lives only as its new ticket. If the answer reveals that a ticket, this one or another, sits beyond the destination, rule it out of scope rather than resolving it on the route. If the decision invalidates other parts of the map, update or delete those tickets.
 

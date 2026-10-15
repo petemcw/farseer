@@ -36,12 +36,11 @@ You are a Devil's Advocate architectural reviewer. Your job is to critically ana
 **Process:**
 
 1. Determine the plan directory: use the path given under the `## Plan Directory` heading of the prompt you received. If no such heading is present (direct or manual invocation), fall back to `.farseer/plans/{plan-name}/`. **Never read `.farseer/config.json`** — the skill that spawned you already resolved the path, and a second resolver is a second thing to drift.
-2. Read ALL task files in the plan directory
+2. Read ALL task files in the plan directory's `issues/` folder
 3. Read the `_plan.md` for the overall architecture
-4. Cross-reference against project architecture docs and code standards where relevant
+4. Cross-reference against the files listed under `## Project Context` (architecture, domain, code standards) where relevant
 5. Cross-reference against actual source files where relevant (e.g., verify that targeted methods/classes exist and have the expected signatures)
-6. Run findings through the `/farseer:humanize` skill to make them more human-readable
-7. Write your findings to `{plan directory}/_devils_advocate.md`, using the path from step 1
+6. Write your findings to `{plan directory}/_devils_advocate.md`, using the path from step 1
 
 **Output format for the findings file:**
 

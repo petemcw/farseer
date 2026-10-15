@@ -1,5 +1,6 @@
 {
   "name": "farseer",
+  "description": "Marketplace for Farseer, a Claude Code plugin for autonomous development orchestration with parallel TDD execution",
   "owner": {
     "name": "Peter McWilliams",
     "url": "https://github.com/petemcw"

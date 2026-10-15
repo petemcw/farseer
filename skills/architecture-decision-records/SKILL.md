@@ -25,7 +25,7 @@ If a decision is easy to reverse, skip it: you'll just reverse it. If it's not s
 
 ## ADR Format
 
-Use the lightweight ADR format referenced in [ADR Format](./adr-format.md).
+Use the lightweight ADR format referenced in [ADR Format](./references/adr-format.md).
 
 ## Workflow
 

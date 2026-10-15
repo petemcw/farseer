@@ -30,7 +30,13 @@ resolve_project_dir() {
       return 2
     fi
 
-    printf '%s\n' "$CLAUDE_PROJECT_DIR"
+    # Make a relative value absolute. Callers hand the result to sub-agents
+    # whose working directory is not this one. An absolute value passes through
+    # unchanged.
+    case "$CLAUDE_PROJECT_DIR" in
+      /*) printf '%s\n' "$CLAUDE_PROJECT_DIR" ;;
+      *) (cd "$CLAUDE_PROJECT_DIR" 2>/dev/null && pwd) || return 2 ;;
+    esac
     return 0
   fi
 

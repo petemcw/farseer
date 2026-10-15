@@ -2,7 +2,7 @@
 
 ## Character Definition
 
-Xiaohei (小黑, "Little Black") is the fixed visual IP for Ian's in-article illustrations.
+Xiaohei (小黑, "Little Black") is the fixed visual IP for these in-article illustrations.
 
 By default, every image includes Xiaohei. Xiaohei is not a mascot, not a sticker, not a cute decoration — but an absurd worker seriously taking part in keeping the system running.
 
@@ -23,21 +23,9 @@ By default, every image includes Xiaohei. Xiaohei is not a mascot, not a sticker
 - A bit clumsy, but not dumb.
 - Looks like it genuinely holds down a job inside a whiteboard sketch.
 
-## Common Duties
+## Duties
 
-Put Xiaohei in charge of the core action:
-
-- Hauling material.
-- Pulling threads to converge information sources.
-- Stuck in a breakpoint.
-- Operating the "judgment" lever inside a machine.
-- Becoming a filter funnel.
-- Slicing open the "material fish".
-- Stamping handoff copy.
-- Leading the handoff path.
-- Holding up a warning sign while eyeing the pit.
-- Reaching out of a hole but failing to catch the content.
-- Off to the side hauling bricks, building bridges, opening doors, sorting, keeping records.
+Put Xiaohei in charge of the core action, using a verb from the action pool in `composition-patterns.md` (pull, carry, stuff, weigh, guard, take apart, and so on) applied to a fresh low-tech object. Invent the duty for each image from the article's own metaphor. The compositions listed under that file's anti-copying rules are off-limits as duties too.
 
 ## Forbidden
 

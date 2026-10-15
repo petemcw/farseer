@@ -199,13 +199,25 @@ scan_dir() {
     [ -n "$name" ] || name="${base%.md}"
 
     # No phase key means the agent is not enrolled anywhere. Normal, not a
-    # warning — tdd-worker is spawned directly and never via a hook.
+    # warning — tdd-worker is spawned directly and never via a hook. A local
+    # file without a phase does not shadow a plugin agent either: .claude/agents
+    # also holds the user's own agents, and an unrelated `code-reviewer.md`
+    # must not silently switch off the plugin's.
     [ -n "$phase" ] || continue
 
-    if ! is_valid_hook "$phase"; then
+    # `phase: none` is the explicit way to switch off a plugin agent. It only
+    # means something in a local file that shares a plugin agent's name.
+    if [ "$phase" = "none" ]; then
+      [ "$origin" = "local" ] || continue
+      if ! index_of_name "$name" >/dev/null; then
+        warn "$f: agent '$name' declares 'phase: none' but no plugin agent has that name; nothing to disable"
+        continue
+      fi
+    elif ! is_valid_hook "$phase"; then
       err "$f: agent '$name' declares unknown phase '$phase'"
       err "  valid phases: $VALID_HOOKS"
       err "  to un-enroll this agent instead, remove its 'phase' key entirely"
+      err "  (or, in a local override of a plugin agent, set 'phase: none')"
       VALIDATION_ERRORS=$((VALIDATION_ERRORS + 1))
       continue
     fi
@@ -223,6 +235,11 @@ scan_dir() {
         ''|*[!0-9]*)
           warn "agent '$name' declares non-numeric order '$order'; using 100"
           order="100"
+          ;;
+        *)
+          # Force base 10: `order: 007` would otherwise print as "order":007,
+          # which is not valid JSON, and $((007)) alone would read it as octal.
+          order=$((10#$order))
           ;;
       esac
     else
@@ -283,7 +300,7 @@ elif [ "$RESOLVE_STATUS" -ne 0 ]; then
   err "  run from inside the project, or set CLAUDE_PROJECT_DIR to its path"
   exit 1
 fi
-LOCAL_AGENTS="$PROJECT_DIR/.farseer/agents"
+LOCAL_AGENTS="$PROJECT_DIR/.claude/agents"
 
 scan_dir "$PLUGIN_AGENTS" plugin
 
@@ -295,7 +312,7 @@ if [ "$plugin_md_count" -eq 0 ]; then
   warn "plugin agents dir '$PLUGIN_AGENTS' contains no .md files"
 fi
 
-# A missing project-local .farseer/agents/ is normal — most projects have none.
+# A missing project-local .claude/agents/ is normal — most projects have none.
 if [ -d "$LOCAL_AGENTS" ]; then
   scan_dir "$LOCAL_AGENTS" local
 fi
@@ -395,14 +412,15 @@ fi
 
 # --- output -----------------------------------------------------------------
 
-# Emits "order|name|mode" for one hook, sorted by order asc then name
+# Emits "order|name|mode|origin" for one hook, sorted by order asc then name
 # case-insensitively. LC_ALL=C keeps the tie-break identical on a macOS
-# en_US.UTF-8 box and a Linux C one.
+# en_US.UTF-8 box and a Linux C one. Callers need the origin to spawn: a plugin
+# agent registers as `farseer:<name>`, a local one as `<name>`.
 rows_for_hook() {
   local hook="$1" i=0 n=${#names[@]}
   while [ "$i" -lt "$n" ]; do
     if [ "${phases[$i]}" = "$hook" ]; then
-      printf '%s|%s|%s\n' "${orders[$i]}" "${names[$i]}" "${modes[$i]}"
+      printf '%s|%s|%s|%s\n' "${orders[$i]}" "${names[$i]}" "${modes[$i]}" "${origins[$i]}"
     fi
     i=$((i + 1))
   done | LC_ALL=C sort -t'|' -k1,1n -k2,2f
@@ -421,10 +439,10 @@ if [ -n "$WANT_JSON" ]; then
   for hook in ${HOOK_FILTER:-$VALID_HOOKS}; do
     printf '%s"%s":[' "$hook_sep" "$hook"
     row_sep=""
-    while IFS='|' read -r ord nm md; do
+    while IFS='|' read -r ord nm md org; do
       [ -n "$nm" ] || continue
-      printf '%s{"name":"%s","order":%s,"mode":"%s"}' \
-        "$row_sep" "$(json_escape "$nm")" "$ord" "$(json_escape "$md")"
+      printf '%s{"name":"%s","order":%s,"mode":"%s","origin":"%s"}' \
+        "$row_sep" "$(json_escape "$nm")" "$ord" "$(json_escape "$md")" "$org"
       row_sep=","
     done <<EOF
 $(rows_for_hook "$hook")
@@ -443,8 +461,8 @@ if [ -n "$HOOK_FILTER" ]; then
   rows="$(rows_for_hook "$HOOK_FILTER")"
   [ -n "$rows" ] || exit 0
   printf '# hook: %s\n' "$HOOK_FILTER"
-  printf '%s\n' "$rows" | while IFS='|' read -r ord nm md; do
-    printf '  order=%-5s name=%-40s mode=%s\n' "$ord" "$nm" "$md"
+  printf '%s\n' "$rows" | while IFS='|' read -r ord nm md org; do
+    printf '  order=%-5s name=%-40s mode=%-6s origin=%s\n' "$ord" "$nm" "$md" "$org"
   done
   exit 0
 fi
@@ -460,9 +478,24 @@ for hook in $VALID_HOOKS; do
   if [ -z "$rows" ]; then
     printf '  (empty — no agents enrolled at this hook)\n'
   else
-    printf '%s\n' "$rows" | while IFS='|' read -r ord nm md; do
-      printf '  order=%-5s name=%-40s mode=%s\n' "$ord" "$nm" "$md"
+    printf '%s\n' "$rows" | while IFS='|' read -r ord nm md org; do
+      printf '  order=%-5s name=%-40s mode=%-6s origin=%s\n' "$ord" "$nm" "$md" "$org"
     done
   fi
 done
+
+# Plugin agents switched off by a local `phase: none` file.
+i=0
+disabled=""
+while [ "$i" -lt "${#names[@]}" ]; do
+  [ "${phases[$i]}" = "none" ] && disabled="$disabled${names[$i]}
+"
+  i=$((i + 1))
+done
+if [ -n "$disabled" ]; then
+  printf '\n# disabled (phase: none in .claude/agents)\n'
+  printf '%s' "$disabled" | LC_ALL=C sort -f | while IFS= read -r nm; do
+    printf '  name=%-40s origin=local\n' "$nm"
+  done
+fi
 exit 0

@@ -1,6 +1,6 @@
 ---
 name: illustrations
-description: Generate Xiaohei-style in-article illustrations — use when the user asks for absurd, hand-drawn, in-article illustrations, article illustrations, illustration suggestions, a shot list, or remove title / edit image tasks for articles, posts, blogs, Notion docs, workflow docs, methodologies, processes, structures, states, metaphors, or opinions; defaults to the Xiaohei IP, pure white hand-drawn style, a few red/orange/blue annotations, and a clean, uncluttered yet wildly imaginative visual style.
+description: Generate hand-drawn, Xiaohei-style in-article illustrations, or a shot list of where an article needs them. Use when the user asks for article illustrations, illustration suggestions, or edits to images made this way.
 ---
 
 # Xiaohei Absurd In-Article Illustrations
@@ -33,7 +33,7 @@ First read what the user provides — article text, links, Notion pages, Markdow
 - Which content is best explained with an image
 - Which parts work as text only and need no image
 
-Don't spread illustrations evenly. Prioritize cognitive anchors, for example: core judgment; two breakpoints; input-output loop; branching; before-after contrast; one fish, many uses; handoff path; common pitfalls; character state changes.
+Don't spread illustrations evenly. Prioritize cognitive anchors, for example: a core judgment; where a process breaks; an input-output loop; branching; a before-after contrast; one input reused many ways; a handoff; common pitfalls; a change of state. These are kinds of content, not compositions: draw each with a new metaphor.
 
 ### 2. Illustration Strategy First
 
@@ -58,11 +58,10 @@ Each image tells exactly one core structure. The prompt must include:
 - 16:9 landscape in-article illustration
 - Pure white background
 - Black hand-drawn line art
-- A few red/orange/blue handwritten annotations (in the article's language)
+- A few red/orange/blue handwritten annotations, in English
 - Generous white space
 - Xiaohei as the core action subject
 - No PPT, no commercial illustration, no childish cuteness, no complex architecture, no top-left category titles
-- Use English for all handwritten annotations
 
 Never replicate past examples. Examples supply only the style density and how Xiaohei participates — existing compositions like "conveyor-belt breakpoint / Xiaohei pulling a line / material fish / stamping toolbox / common-pitfalls path" are off-limits unless the user explicitly asks to replicate a specific image. Reinvent a strange but coherent metaphor from the current article every single time.
 
