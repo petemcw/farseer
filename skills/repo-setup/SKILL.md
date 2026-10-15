@@ -8,7 +8,7 @@ disable-model-invocation: true
 
 One-time interactive setup to configure a repository for autonomous development. Scaffolds the per-repository configuration that our engineering skills assume:
 
-- **Domain Context**: Where Farseer and project context, ADRs, and rules for reading them live
+- **Glossary**: The project's domain terms, and the synonyms to avoid
 - **Issue Tracker**: Where issues live; (GitHub by default; then local Markdown)
 - **Issue Labels**: The string labels used for canonical issue triage roles
 
@@ -35,7 +35,7 @@ Is this a GitHub repository? Which one? -- `git remote -v` and check `.git/confi
 Do we already have configuration files in place?
 
 ```bash
-ls AGENTS.md CLAUDE.md .farseer/architecture.md .farseer/code-standards.md .farseer/domain.md .farseer/issue-labels.md .farseer/issue-tracker.md .farseer/testing.md 2>/dev/null
+ls AGENTS.md CLAUDE.md .farseer/architecture.md .farseer/code-standards.md .farseer/glossary.md .farseer/issue-labels.md .farseer/issue-tracker.md .farseer/testing.md 2>/dev/null
 ```
 
 Are there any existing plans or ADRs?
@@ -50,7 +50,7 @@ Check for signs if a local-Markdown issue tracker is in place:
 ls .farseer/scratch/ 2>/dev/null
 ```
 
-If `AGENTS.md` or `CLAUDE.md` and all config files (`architecture.md`, `code-standards.md`, `domain.md`, `issue-labels.md`, `issue-tracker.md`, `testing.md`) exist, inform the user:
+If `AGENTS.md` or `CLAUDE.md` and all config files (`architecture.md`, `code-standards.md`, `glossary.md`, `issue-labels.md`, `issue-tracker.md`, `testing.md`) exist, inform the user:
 
 > Repository already configured. Config files exist in `.farseer/`.
 
@@ -216,7 +216,7 @@ mkdir -p .farseer
 
 This project's test facts: framework, commands, locations, coverage and naming. TDD methodology lives in Farseer's `tdd-worker` agent, so it is not repeated here.
 
-When exploring the codebase, read `.farseer/domain.md` (if it exists) so test names and interface vocabulary match the project's domain language, and respect ADRs in the area you're touching.
+When exploring the codebase, read `.farseer/glossary.md` (if it exists) so test names and interface vocabulary match the project's domain language, and respect ADRs in the area you're touching. If a change contradicts an ADR, say so rather than silently overriding it.
 
 ## Test Framework
 
@@ -341,15 +341,21 @@ Example:
 ## Key Integrations
 
 {If mentioned in dump}
+
+## Business-Critical Paths
+
+{Areas where a change carries the highest test and review burden, e.g. payments, auth, data migrations. From the user dump; leave this section out if none were named.}
+
+Before changing one of these, check `.farseer/adr/` for a decision covering that area.
 ```
 
 _Optional expansions: DI/IoC details, plugin/extension system, event system, routing, configuration, bootstrap process, error handling, versioning strategy._
 
-**Create `.farseer/domain.md`, `.farseer/issue-tracker.md`, `.farseer/issue-labels.md`:**
+**Create `.farseer/glossary.md`, `.farseer/issue-tracker.md`, `.farseer/issue-labels.md`:**
 
 Write these configuration files based on the collected user input and auto-detected information using the seed templates in this skill folder as a starting point.
 
-- [domain.md](./domain.md): domain context
+- [glossary.md](./glossary.md): domain glossary
 - [issue-labels.md](./issue-labels.md): label mapping
 - [issue-tracker-github.md](./issue-tracker-github.md): GitHub issue tracker
 - [issue-tracker-local.md](./issue-tracker-local.md): local-markdown issue tracker
@@ -388,9 +394,9 @@ Project configuration files are in `.farseer/`:
 - `code-standards.md` - Coding conventions
 - `testing.md` - Test configuration and commands
 
-### Domain Context
+### Glossary
 
-[summary of domain context]. See `.farseer/domain.md`.
+[one-line summary of the domain the glossary covers]. See `.farseer/glossary.md`.
 
 ### Issue Tracker
 
@@ -463,9 +469,9 @@ Project configuration files are in `.farseer/`:
 - `code-standards.md` - Coding conventions
 - `testing.md` - Test configuration and commands
 
-### Domain Context
+### Glossary
 
-[summary of domain context]. See `.farseer/domain.md`.
+[one-line summary of the domain the glossary covers]. See `.farseer/glossary.md`.
 
 ### Issue Tracker
 
@@ -484,7 +490,7 @@ After creating all files, output:
 ✓ Created (or Edited) AGENTS.md/CLAUDE.md
 ✓ Created .farseer/architecture.md
 ✓ Created .farseer/code-standards.md
-✓ Created .farseer/domain.md
+✓ Created .farseer/glossary.md
 ✓ Created .farseer/issue-labels.md
 ✓ Created .farseer/issue-tracker.md
 ✓ Created .farseer/testing.md

@@ -9,7 +9,7 @@ Issues for this repo live as markdown files in `.farseer/plans/{plan-name}/issue
 - Implementation issues are one file per issue at `.farseer/plans/{plan-name}/issues/{NNN}-{task-name}.md`, numbered from `01`, never a single-digit issue file
 - Triage state is recorded as a `Status:` line near the top of each issue file (see `issue-labels.md` for the role strings)
 - Comments and conversation history append to the bottom of the file under a `## Comments` heading
-- **Issue titles** use the vocabulary in `.farseer/domain.md`
+- **Issue titles** use the vocabulary in `.farseer/glossary.md`
 
 ## When a skill says "publish to the issue tracker"
 

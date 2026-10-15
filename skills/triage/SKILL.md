@@ -20,7 +20,7 @@ Before anything else, read these files from the project root:
 
 - `.farseer/issue-tracker.md`: which tracker this repo uses and how to query, label, comment on, and close issues. For a local-markdown tracker, state lives in each issue file, not in labels.
 - `.farseer/issue-labels.md`: the label string this repo uses for each role below.
-- `.farseer/domain.md` (if present): the domain glossary used when exploring the codebase.
+- `.farseer/glossary.md` (if present): the domain glossary used when exploring the codebase.
 
 If `issue-tracker.md` or `issue-labels.md` is missing, stop and tell the user to run `/farseer:repo-setup` first.
 
@@ -79,7 +79,7 @@ Show counts and a one-line summary per item. Let the maintainer pick.
 
 3. **Verify the claim.** Before any interviewing, check that the claim holds up. For a bug, reproduce it from the reporter's steps. Report what happened: confirmed (with code path), failed, or insufficient detail (a strong `needs-info` signal). A confirmed verification makes a much stronger agent brief.
 
-4. **Interview (if needed).** If the request needs fleshing out, call the Skill tool using "interviewer", and interview it into shape one round of questions at a time, sharpening domain terms and updating `.farseer/domain.md`/ADRs inline as decisions land.
+4. **Interview (if needed).** If the request needs fleshing out, call the Skill tool using "interviewer", and interview it into shape one round of questions at a time, sharpening domain terms and updating `.farseer/glossary.md` and ADRs inline as decisions land.
 
 5. **Apply the outcome:**
    - `ready-for-agent`: post an agent brief comment ([AGENT-BRIEF.md](./references/agent-brief.md)).

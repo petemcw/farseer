@@ -10,11 +10,11 @@ Transform feature requests into structured plans with task breakdowns, dependenc
 
 **All multi-sentence output for user presentation** should trigger the Skill using `/farseer:humanize` to give a more human voice to the text.
 
-## Domain Context
+## Glossary
 
-<domain>
-@.farseer/domain.md
-</domain>
+<glossary>
+@.farseer/glossary.md
+</glossary>
 
 ## Project Architecture
 
@@ -33,7 +33,7 @@ Agents spawned by this skill read the project's context files themselves. Before
 Build the list from the printed path (call it `$PROJECT_DIR`, and write it literally into later commands). Include each file **only if it exists**:
 
 ```bash
-for f in domain.md architecture.md code-standards.md; do
+for f in glossary.md architecture.md code-standards.md; do
   if [ -f "$PROJECT_DIR/.farseer/$f" ]; then printf '%s\n' "$PROJECT_DIR/.farseer/$f"; fi
 done
 ```
@@ -89,7 +89,8 @@ If a question can be answered by exploring the codebase, explore the codebase in
 
 Read files specifically related to the ask. Architecture context is already loaded via the `<architecture>` block at the top of this skill — do not re-read `.farseer/architecture.md`. Instead:
 
-- Read the `.farseer/domain.md` file for domain context and any `.farseer/adr/*.md` files for existing architectural decisions.
+- Use the terms in the `<glossary>` block (already loaded; do not re-read it) for task names, test names and issue titles. If a concept you need is missing, propose it to the user as a new entry rather than inventing a synonym.
+- Read any `.farseer/adr/*.md` files for existing architectural decisions, especially before planning changes to a business-critical path listed in `architecture.md`. If the plan contradicts an ADR, say so explicitly rather than silently overriding it.
 - Glob for domain-related files (e.g., for "track books", look for `book*`, `*Book*`, library/reading-list files)
 - Read existing models, controllers, or components that overlap with the ask
 - Note existing patterns the new feature must conform to or extend

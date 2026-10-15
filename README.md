@@ -294,7 +294,7 @@ Workers never commit. The orchestrator makes one commit for the whole plan after
 | ------------------- | ------------------------------------- |
 | `architecture.md`   | Directory structure, patterns         |
 | `code-standards.md` | Linting, formatting rules             |
-| `domain.md`         | Project vocabulary and business rules |
+| `glossary.md`       | Domain terms and synonyms to avoid    |
 | `issue-labels.md`   | Labels used for issues and PRs        |
 | `issue-tracker.md`  | Issue tracking configuration          |
 | `testing.md`        | Test commands, coverage requirements  |
