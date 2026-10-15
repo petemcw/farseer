@@ -411,7 +411,7 @@ Project configuration files are in `.farseer/`:
 
 This file provides always-on context for every Claude session. Keep it concise (~30-50 lines).
 
-````markdown
+```markdown
 # {Project Name}
 
 {Brief 1-2 sentence description of the project.}
@@ -444,19 +444,6 @@ Skip for: quick bug fixes, single-line changes, questions, documentation. When s
 
 {Brief 3-5 line summary of directory structure from architecture.md}
 
-## Commands
-
-```bash
-# Run tests
-{test command}
-
-# Lint/format
-{lint command}
-
-# Start dev server (if applicable)
-{start command or remove this line}
-```
-
 ## Key Rules
 
 {5-10 bullet points of critical coding rules extracted from code-standards.md and user input}
@@ -480,7 +467,7 @@ Project configuration files are in `.farseer/`:
 ### Triage Labels
 
 [one-line summary of the label vocabulary]. See `.farseer/issue-labels.md`.
-````
+```
 
 ### Step 7: Confirm Completion
 

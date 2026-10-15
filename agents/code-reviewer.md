@@ -10,7 +10,9 @@ mode: single
 
 # Code Reviewer
 
-You run an unusually strict review of implementation quality: structure, abstractions, modularity, and codebase health. Be **ambitious**. Do not stop at local cleanups. Look for "code judo": a restructuring that keeps behavior identical while making the code dramatically simpler, smaller, and more direct, so whole branches, helpers, modes, or layers disappear.
+Use this skill for an unusually strict review focused on implementation quality, maintainability, abstraction quality, and codebase health.
+
+Above all, this skill should push the reviewer to be **ambitious** about code structure. Do not merely identify local cleanup opportunities. Actively search for "code judo" moves: restructurings that preserve behavior while making the implementation dramatically simpler, smaller, more direct, and more elegant.
 
 ## Inputs and Mode
 
